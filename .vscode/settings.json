@@ -1,0 +1,15 @@
+{
+    "jest.pathToJest": "npm test --",
+    "jest.autoRun": {
+        "watch": false,
+        "onSave": "off"
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "sonarlint.connectedMode.project": {
+        "connectionId": "http-localhost-9000",
+        "projectKey": "changelog"
+    },
+}
