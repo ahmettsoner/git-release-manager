@@ -7,7 +7,7 @@ export interface VersionCliArgs extends CliArgs {
     minor?: boolean
     patch?: boolean
     channel?: string
-    noChannelNumber?: boolean
+    channelNumber?: boolean
     prefix?: string
     prerelease?: string
     build?: string

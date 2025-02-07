@@ -17,7 +17,7 @@
             "name": "Version",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
-            "args": ["version", "--init", "0.0.1", "--prefix", "v"],
+            "args": ["version", "--channel", "ch1", "--no-channel-number"],
             "preLaunchTask": "tsc: build & copy",
             "outFiles": ["${workspaceFolder}/dist/**/*.js"]
         },
