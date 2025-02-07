@@ -3,7 +3,6 @@ import { Config } from '../../config/types/Config'
 import { listCommitsAsync } from '../git/commits/commitProcessor'
 import { getCurrentRepositoryAsync } from '../git/context'
 import { getCommitCount } from '../git/utils/commitUtils'
-import { Tag } from '../git/types/Tag'
 import { createSections } from '../sections'
 import { renderTemplate } from '../../templates/templateRenderer'
 import { collectGitInfo, resolveGitReferences, resolveGitReferencesFromRangeSummary } from '../git/gitOperations'
@@ -24,9 +23,11 @@ export async function getChangeInformation(rangeInfo: RangeSummary): Promise<Cha
 
     header = currentReference?.name ?? null
 
-    if (currentReference?.reference != rangeInfo.resolvedTo.reference) {
-        const commitsAhead = await getCommitCount(`${currentReference?.reference}..${rangeInfo.resolvedTo.reference}`)
-        header += ` (+${commitsAhead} commits)`
+    if (currentReference) {
+        if (currentReference?.reference != rangeInfo.resolvedTo.reference) {
+            const commitsAhead = await getCommitCount(`${currentReference?.reference}..${rangeInfo.resolvedTo.reference}`)
+            header += ` (+${commitsAhead} commits)`
+        }
     }
 
     // if (resolvedTo.type === ReferenceTypesEnum.commit) {}
