@@ -5,11 +5,11 @@
     "main": "index.ts",
     "scripts": {
         "build": "tsc && npm run copy-config && npm run copy-template",
-        "start": "node dist//index.js",
-        "changelog": "node dist//index.js changelog",
-        "dev": "tsc && node dist//index.js",
-        "copy-config": "copyfiles -u 1 ./src/config/defaults/config.*json ./dist//",
-        "copy-template": "copyfiles -u 1 ./src/templates/defaults/changelog.*ejs ./dist//",
+        "start": "node dist/index.js",
+        "changelog": "node dist/index.js changelog",
+        "dev": "tsc && node dist/index.js",
+        "copy-config": "copyfiles -u 1 ./src/config/defaults/config.*json ./dist/",
+        "copy-template": "copyfiles -u 1 ./src/templates/defaults/changelog.*ejs ./dist/",
         "test": "jest"
     },
     "bin": {
@@ -21,6 +21,7 @@
     "dependencies": {
         "commander": "^13.0.0",
         "ejs": "^3.1.10",
+        "git-release-manager": "file:",
         "minimist": "^1.2.8",
         "semver": "^7.7.0",
         "simple-git": "^3.27.0"
@@ -30,7 +31,7 @@
         "@types/ejs": "^3.1.5",
         "@types/jest": "^29.5.14",
         "@types/minimist": "^1.2.5",
-        "@types/node": "^22.10.5",
+        "@types/node": "22.13.1",
         "@typescript-eslint/eslint-plugin": "^6.19.0",
         "@typescript-eslint/parser": "^6.19.0",
         "copyfiles": "^2.4.1",
@@ -41,7 +42,7 @@
         "ts-jest": "^29.2.5",
         "ts-node": "^10.9.2",
         "ts-node-dev": "^2.0.0",
-        "typescript": "^5.7.3"
+        "typescript": "5.7.3"
     },
     "keywords": [
         "git",
@@ -58,6 +59,6 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/ahmettsoner/changelog.git"
+        "url": "https://github.com/ahmettsoner/git-release-manager.git"
     }
 }
