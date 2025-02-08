@@ -109,9 +109,14 @@ export async function renderChangelogTemplate(templatePath: string, options: Cha
     const repository = await getCurrentRepositoryAsync()
     const { resolvedFrom, resolvedTo } = await resolveGitReferences(options)
     if (!resolvedFrom || !resolvedTo) {
-        return fileData
+        console.log('Unable to resolve git references')
+        return
     }
     const rangeSummary = await getRangeSummary(resolvedFrom, resolvedTo)
+    if(rangeSummary.referenceList.length === 0){
+        console.log('No changes found')
+        return
+    }
 
     if (options?.mergeAll) {
         const context = await getContext(rangeSummary, config, date, repository)

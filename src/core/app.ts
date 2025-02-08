@@ -1,9 +1,9 @@
-import { ChangelogCliArgs } from '../../cli/types/ChangelogCliArgs'
-import { Config } from '../../config/types/Config'
-import { VersionManager } from '../../modules/version/VersionManager'
-import { ChangelogValidator } from '../../modules/changelog/ChangelogValidator'
-import { readConfig } from '../../config/configManager'
-import { VersionCliArgs } from '../../cli/types/VersionCliArgs'
+import { ChangelogCliArgs } from '../cli/types/ChangelogCliArgs'
+import { Config } from '../config/types/Config'
+import { VersionManager } from '../modules/version/VersionManager'
+import { ChangelogValidator } from '../modules/changelog/ChangelogValidator'
+import { readConfig } from '../config/configManager'
+import { VersionCliArgs } from '../cli/types/VersionCliArgs'
 
 export async function changelogRun(options: ChangelogCliArgs): Promise<void> {
     const validator = new ChangelogValidator()
@@ -36,10 +36,10 @@ export async function versionRun(options: VersionCliArgs): Promise<void> {
         process.exit(1)
     }
 }
-import { BranchCliArgs } from '../../cli/types/BranchCliArgs'
-import { BranchController } from '../../modules/branch/BranchController'
-import { renderChangelogTemplate } from '../../modules/changelog/templateOperations'
-import { writeOutput } from '../../modules/output/writer'
+import { BranchCliArgs } from '../cli/types/BranchCliArgs'
+import { BranchController } from '../modules/branch/BranchController'
+import { renderChangelogTemplate } from '../modules/changelog/templateOperations'
+import { writeOutput } from '../modules/output/writer'
 
 export async function branchRun(options: BranchCliArgs): Promise<void> {
     const controller = new BranchController()

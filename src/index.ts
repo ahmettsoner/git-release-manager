@@ -7,7 +7,7 @@ import { CliArgs } from './cli/types/CliArgs'
 import { ChangelogCliArgs } from './cli/types/ChangelogCliArgs'
 import { VersionCliArgs } from './cli/types/VersionCliArgs'
 import { BranchCliArgs } from './cli/types/BranchCliArgs'
-import { branchRun, changelogRun, versionRun } from './core/changelog/app'
+import { branchRun, changelogRun, versionRun } from './core/app'
 
 import { PackageJson } from './types/PackageJson'
 
