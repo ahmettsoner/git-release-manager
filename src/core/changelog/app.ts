@@ -5,7 +5,7 @@ import { ChangelogValidator } from '../../modules/changelog/ChangelogValidator'
 import { readConfig } from '../../config/configManager'
 import { VersionCliArgs } from '../../cli/types/VersionCliArgs'
 
-export async function chnagelogRun(options: ChangelogCliArgs): Promise<void> {
+export async function changelogRun(options: ChangelogCliArgs): Promise<void> {
     const validator = new ChangelogValidator()
     validator.validateOptions(options)
 

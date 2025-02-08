@@ -7,7 +7,7 @@ import { CliArgs } from './cli/types/CliArgs'
 import { ChangelogCliArgs } from './cli/types/ChangelogCliArgs'
 import { VersionCliArgs } from './cli/types/VersionCliArgs'
 import { BranchCliArgs } from './cli/types/BranchCliArgs'
-import { branchRun, chnagelogRun, versionRun } from './core/changelog/app'
+import { branchRun, changelogRun, versionRun } from './core/changelog/app'
 
 import { PackageJson } from './types/PackageJson'
 
@@ -41,7 +41,7 @@ program
     .option('--environment [string]', 'Specific environment to use')
     // .option('--separateFiles [boolean]', 'District changelogs into own files')
     .action(async (options: ChangelogCliArgs) => {
-        await chnagelogRun(options)
+        await changelogRun(options)
     })
 
 program
