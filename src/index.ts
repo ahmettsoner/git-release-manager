@@ -21,7 +21,6 @@ program
     .version(packageJson.version ?? '0.0.0', '-v, --version', 'Show version number')
     .helpOption('-h, --help', 'Show help information')
 
-
 program // generate ai based conventional commit
     .command('commit')
     .description('Generate changelog')
@@ -53,12 +52,14 @@ program
     .option('-i, --minor', 'Increment minor version')
     .option('-p, --patch', 'Increment patch version')
     .option('-c, --channel <channel>', 'Specify the prerelease channel (e.g., alpha, beta)')
+    .option('-d, --detect [path]', 'Detect version from project file. If path is not specified, searches in current directory')
+    .option('-u, --update [path]', 'Update version in project file')
     .option('--no-channel-number', 'Exclude channel number')
     .option('--prefix <prefix>', 'Specify version prefix')
     .option('--prerelease <identifier>', 'Add prerelease identifier')
     .option('--build <identifier>', 'Add build metadata')
     .option('-l, --list [count]', 'List versions (optionally specify count)')
-    .option('--latest', 'Show latest version')
+    .option('-L, --latest', 'Show latest version')
     .option('--tag', 'Create git tag for version')
     .option('--push', 'Push changes and tags to remote')
     .option('--draft', 'Create draft release')
@@ -71,12 +72,7 @@ program
     .option('--sync', 'Sync versions with remote')
     .action(async (options: VersionCliArgs) => {
         await versionRun(options)
-
     })
-
-
-
-
 
 program
     .command('branch')
@@ -98,9 +94,6 @@ program
     .action(async (options: BranchCliArgs) => {
         branchRun(options)
     })
-
-
-
 
 program.action(() => {
     console.log('Please specify a command or use --help for usage information')

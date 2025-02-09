@@ -10,6 +10,8 @@ export interface VersionCliArgs extends CliArgs {
     channelNumber?: boolean
     prefix?: string
     prerelease?: string
+    detect?: string | boolean;
+    update?: string | boolean;
     build?: string
     list?: boolean
     latest?: boolean

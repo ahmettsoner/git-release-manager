@@ -1,63 +1,63 @@
 {
-    "name": "git-release-manager",
-    "version": "0.0.7",
-    "description": "A tool to generate release notes from git commit history",
-    "main": "index.ts",
-    "scripts": {
-        "build": "tsc && npm run copy-config && npm run copy-template",
-        "start": "node dist/index.js",
-        "changelog": "node dist/index.js changelog",
-        "dev": "tsc && node dist/index.js",
-        "copy-config": "copyfiles -u 1 ./src/config/defaults/config.*json ./dist/",
-        "copy-template": "copyfiles -u 1 ./src/templates/defaults/changelog.*ejs ./dist/",
-        "test": "jest"
-    },
-    "bin": {
-        "grm": "./dist/index.js"
-    },
-    "files": [
-        "dist"
-    ],
-    "dependencies": {
-        "commander": "^13.0.0",
-        "ejs": "^3.1.10",
-        "minimist": "^1.2.8",
-        "semver": "^7.7.0",
-        "simple-git": "^3.27.0"
-    },
-    "devDependencies": {
-        "@types/commander": "^2.12.2",
-        "@types/ejs": "^3.1.5",
-        "@types/jest": "^29.5.14",
-        "@types/minimist": "^1.2.5",
-        "@types/node": "22.13.1",
-        "@typescript-eslint/eslint-plugin": "^6.19.0",
-        "@typescript-eslint/parser": "^6.19.0",
-        "copyfiles": "^2.4.1",
-        "eslint": "^8.0.0",
-        "jest": "^29.7.0",
-        "prettier": "^3.0.0",
-        "rimraf": "^5.0.5",
-        "ts-jest": "^29.2.5",
-        "ts-node": "^10.9.2",
-        "ts-node-dev": "^2.0.0",
-        "typescript": "5.7.3"
-    },
-    "keywords": [
-        "git",
-        "release",
-        "changelog",
-        "version",
-        "release-notes",
-        "cli"
-    ],
-    "author": "Ahmet Soner",
-    "license": "MIT",
-    "engines": {
-        "node": ">=14.0.0"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ahmettsoner/git-release-manager.git"
-    }
+  "name": "git-release-manager",
+  "version": "2.0.0",
+  "description": "A tool to generate release notes from git commit history",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc && npm run copy-config && npm run copy-template",
+    "start": "node dist/index.js",
+    "changelog": "node dist/index.js changelog",
+    "dev": "tsc && node dist/index.js",
+    "copy-config": "copyfiles -u 1 ./src/config/defaults/config.*json ./dist/",
+    "copy-template": "copyfiles -u 1 ./src/templates/defaults/changelog.*ejs ./dist/",
+    "test": "jest"
+  },
+  "bin": {
+    "grm": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^13.0.0",
+    "ejs": "^3.1.10",
+    "minimist": "^1.2.8",
+    "semver": "^7.7.0",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/commander": "^2.12.2",
+    "@types/ejs": "^3.1.5",
+    "@types/jest": "^29.5.14",
+    "@types/minimist": "^1.2.5",
+    "@types/node": "22.13.1",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^8.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "5.7.3"
+  },
+  "keywords": [
+    "git",
+    "release",
+    "changelog",
+    "version",
+    "release-notes",
+    "cli"
+  ],
+  "author": "Ahmet Soner",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ahmettsoner/git-release-manager.git"
+  }
 }
