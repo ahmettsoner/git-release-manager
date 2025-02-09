@@ -1,0 +1,8 @@
+.pnotes/
+node_modules/
+dist/
+.scannerwork/
+.DS_Store
+*.log
+.env
+notes/
