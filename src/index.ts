@@ -5,11 +5,20 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { CliArgs } from './cli/types/CliArgs'
 import { ChangelogCliArgs } from './cli/types/ChangelogCliArgs'
+<<<<<<< HEAD
 import { PackageJson } from './types/PackageJson'
 import { run as changelogRun } from './core/changelog/app'
 import { readConfig } from './config/configManager'
 
 // Read package.json
+=======
+import { VersionCliArgs } from './cli/types/VersionCliArgs'
+import { BranchCliArgs } from './cli/types/BranchCliArgs'
+import { branchRun, changelogRun, versionRun } from './core/app'
+
+import { PackageJson } from './types/PackageJson'
+
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 const packageJson: PackageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'))
 
 const program = new Command()
@@ -20,6 +29,7 @@ program
     .version(packageJson.version ?? '0.0.0', '-v, --version', 'Show version number')
     .helpOption('-h, --help', 'Show help information')
 
+<<<<<<< HEAD
 const validateOptions = (options: ChangelogCliArgs) => {
     const hasRange = !!options.range
     const hasPoint = !!options.point
@@ -41,6 +51,8 @@ const validateOptions = (options: ChangelogCliArgs) => {
     }
 }
 
+=======
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 program // generate ai based conventional commit
     .command('commit')
     .description('Generate changelog')
@@ -60,6 +72,7 @@ program
     .option('--environment [string]', 'Specific environment to use')
     // .option('--separateFiles [boolean]', 'District changelogs into own files')
     .action(async (options: ChangelogCliArgs) => {
+<<<<<<< HEAD
         validateOptions(options)
         if (options.mergeAll === undefined) {
             options.mergeAll = false
@@ -74,22 +87,39 @@ program
     })
 const defaultVersion = '0.0.0'
 type VersionType = 'major' | 'minor' | 'patch'
+=======
+        await changelogRun(options)
+    })
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 
 program
     .command('version')
     .description('Manage version and release process')
+<<<<<<< HEAD
     .option('--init <version>', 'Initialize first version')
+=======
+    .option('--init [version]', 'Initialize first version')
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
     .option('--reset', 'Reset version history')
     .option('-m, --major', 'Increment major version')
     .option('-i, --minor', 'Increment minor version')
     .option('-p, --patch', 'Increment patch version')
     .option('-c, --channel <channel>', 'Specify the prerelease channel (e.g., alpha, beta)')
+<<<<<<< HEAD
+=======
+    .option('-d, --detect [path]', 'Detect version from project file. If path is not specified, searches in current directory')
+    .option('-u, --update [path]', 'Update version in project file')
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
     .option('--no-channel-number', 'Exclude channel number')
     .option('--prefix <prefix>', 'Specify version prefix')
     .option('--prerelease <identifier>', 'Add prerelease identifier')
     .option('--build <identifier>', 'Add build metadata')
     .option('-l, --list [count]', 'List versions (optionally specify count)')
+<<<<<<< HEAD
     .option('--latest', 'Show latest version')
+=======
+    .option('-L, --latest', 'Show latest version')
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
     .option('--tag', 'Create git tag for version')
     .option('--push', 'Push changes and tags to remote')
     .option('--draft', 'Create draft release')
@@ -101,6 +131,7 @@ program
     .option('--branch', 'Create release branch automatically')
     .option('--sync', 'Sync versions with remote')
     .action(async (options: VersionCliArgs) => {
+<<<<<<< HEAD
         try {
             // Validate version manipulation options
             validateVersionOptions(options)
@@ -514,6 +545,11 @@ export const createGitTag = async (version: string): Promise<void> => {
     }
 }
 
+=======
+        await versionRun(options)
+    })
+
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 program
     .command('branch')
     .description('Manage git branches')
@@ -532,6 +568,7 @@ program
     .option('--sync', 'Sync current branch with its remote')
     .option('--push', 'Push changes to remote after operation')
     .action(async (options: BranchCliArgs) => {
+<<<<<<< HEAD
         try {
             if (options.create) {
                 await createBranch(options.create, options.push)
@@ -781,6 +818,11 @@ async function confirmAction(message: string): Promise<boolean> {
     return true // Placeholder
 }
 
+=======
+        branchRun(options)
+    })
+
+>>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 program.action(() => {
     console.log('Please specify a command or use --help for usage information')
     process.exit(1)
