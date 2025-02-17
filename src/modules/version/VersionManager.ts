@@ -22,6 +22,11 @@ export class VersionManager {
             // Validate version manipulation options
             this.validator.validateVersionOptions(options)
 
+            if (options.reset) {
+                await this.gitManager.resetVersion()
+                return
+            }
+
             if (options.detect) {
                 const projectVersion = this.projectVersionManager.detectProjectVersion(typeof options.detect === 'string' ? options.detect : undefined)
                 console.log(`Using project file: ${projectVersion.filePath}\nCurrent version: ${projectVersion.currentVersion}`)
@@ -41,10 +46,6 @@ export class VersionManager {
                 return
             }
 
-            if (options.reset) {
-                await this.gitManager.resetVersion()
-                return
-            }
 
             if (options.latest) {
                 await this.gitManager.showLatestVersion()
@@ -72,9 +73,31 @@ export class VersionManager {
             }
 
             // Handle version creation/update
-            const newVersion = await this.gitManager.generateNewVersion(options)
+            let newVersion = ""
+            if(options.init) {
+                newVersion = await this.gitManager.initVersion(options)
+            }else{
+                newVersion = await this.gitManager.generateNewVersion(options)
+            }
             await this.releaseManager.createVersion(newVersion, options)
 
+
+        
+            // Create git tag
+            if (options.tag !== false) {
+                // Default to true if not explicitly set to false
+                await this.gitManager.createGitTag(newVersion)
+                console.log(`Created tag: ${newVersion}`)
+            }
+
+
+            // Push changes if requested
+            if (options.push) {
+                await this.gitManager.pushChanges(newVersion, options.branch)
+                console.log('Pushed changes to remote')
+            }
+        
+            
             if (options.update) {
                 // Versiyon güncelleme
                 const projectPath = typeof options.update === 'string' ? options.update : undefined

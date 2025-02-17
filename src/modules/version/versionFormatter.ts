@@ -1,124 +1,92 @@
-import semver from 'semver'
+import semver from 'semver';
 
 interface IncrementOptions {
-    channel?: string
-    channelNumber?: boolean
-    prefix?: string
-    prerelease?: string
-    build?: string
+  channel?: string;
+  channelNumber?: boolean;
+  prefix?: string;
+  prerelease?: string;
+  build?: string;
 }
 
-interface VersionConfig {
-    defaultPrefix?: string
-    defaultChannel?: string
-    protectedVersions?: string[]
-}
+type VersionType = 'major' | 'minor' | 'patch' | undefined;
 
-export const incrementChannelOnly = (version: string, options: IncrementOptions): string => {
-    const { channel, channelNumber, prefix, build } = options
+export const incrementVersion = (
+  version: string,
+  type: VersionType,
+  options: IncrementOptions = {}
+): string => {
+  const { prefix, build, channel, prerelease, channelNumber } = options;
+  let versionWithoutPrefix = removePrefixAndBuild(version, prefix);
 
-    if (!channel) {
-        throw new Error('Channel must be specified for channel-only increment')
+  if (!semver.valid(versionWithoutPrefix)) {
+    throw new Error(`Invalid version format: ${version}`);
+  }
+
+  let newVersion = type ? incrementVersionCore(versionWithoutPrefix, type) : versionWithoutPrefix;
+
+  if (channel || prerelease) {
+    // Clear any existing prerelease if type is specified (since it means a new increment)
+    if (type) {
+      newVersion = clearPrerelease(newVersion);
     }
+    newVersion = addPrereleaseOrChannel(newVersion, versionWithoutPrefix, options);
+  }
 
-    // Remove prefix if exists for processing
-    let versionWithoutPrefix = prefix ? version.replace(prefix, '') : version
+  if (build) {
+    newVersion = `${newVersion}+${build}`;
+  }
 
-    // Remove build metadata for processing
-    versionWithoutPrefix = versionWithoutPrefix.split('+')[0]
+  return finalizeVersion(newVersion, prefix);
+};
 
-    if (!semver.valid(versionWithoutPrefix)) {
-        throw new Error(`Invalid version format: ${version}`)
+const incrementVersionCore = (version: string, type: VersionType): string => {
+  return semver.inc(version, type!) ?? version;
+};
+
+const removePrefixAndBuild = (version: string, prefix?: string): string => {
+  let baseVersion = prefix ? version.replace(prefix, '') : version;
+  return baseVersion.split('+')[0];
+};
+const addPrereleaseOrChannel = (
+  baseVersion: string,
+  versionWithoutPrefix: string,
+  options: IncrementOptions
+): string => {
+  const { channel, channelNumber, prerelease } = options;
+
+  if (prerelease) {
+    // For prerelease, append without a numerical suffix
+    // If there's an existing prerelease, return it as it is
+    if (semver.prerelease(baseVersion)) {
+      return baseVersion;
     }
+    return `${baseVersion}-${prerelease}`;
+  }
 
-    // Get the base version without prerelease or build metadata
-    const baseVersion = versionWithoutPrefix.split('-')[0]
-    let newVersion: string
+  if (channel) {
+    const currentPrerelease = semver.prerelease(baseVersion);
+    const isExistingChannel = currentPrerelease && currentPrerelease[0] === channel;
+
+    if (isExistingChannel && channelNumber) {
+      const currentNumber = parseInt(currentPrerelease[1] as string, 10) || 0;
+      return `${baseVersion.split('-')[0]}-${channel}.${currentNumber + 1}`;
+    }
 
     if (!channelNumber) {
-        // Simple channel without number
-        newVersion = `${baseVersion}-${channel}`
+      // If there is no -channel suffix or channelNumber is false, append channel without number
+      return `${baseVersion.split('-')[0]}-${channel}`;
     } else {
-        // Check current prerelease information
-        const currentPrerelease = semver.prerelease(versionWithoutPrefix)
-
-        if (currentPrerelease) {
-            if (currentPrerelease[0] === channel) {
-                // Same channel: increment the number
-                const currentNumber = parseInt(currentPrerelease[1] as string, 10) || 0
-                newVersion = `${baseVersion}-${channel}.${currentNumber + 1}`
-            } else {
-                // Different channel: start new sequence
-                newVersion = `${baseVersion}-${channel}.1`
-            }
-        } else {
-            // No previous prerelease: start new sequence
-            newVersion = `${baseVersion}-${channel}.1`
-        }
+      // If no existing channel, and channelNumber is true, start numbering from .1
+      return `${baseVersion.split('-')[0]}-${channel}.1`;
     }
+  }
 
-    // Add build metadata if specified
-    if (build) {
-        newVersion = `${newVersion}+${build}`
-    }
+  return baseVersion;
+};
+const clearPrerelease = (version: string): string => {
+  return version.split('-')[0];
+};
 
-    // Add prefix back if specified
-    return prefix ? `${prefix}${newVersion}` : newVersion
-}
-
-// Update incrementVersion function to handle undefined versionType
-export const incrementVersion = (version: string, type: VersionType, options: IncrementOptions = {}): string => {
-    const { channel, channelNumber, prefix, prerelease, build } = options
-
-    // Remove prefix if exists for processing
-    let versionWithoutPrefix = prefix ? version.replace(prefix, '') : version
-
-    // Remove build metadata for processing (will be added back later)
-    versionWithoutPrefix = versionWithoutPrefix.split('+')[0]
-
-    if (!semver.valid(versionWithoutPrefix)) {
-        throw new Error(`Invalid version format: ${version}`)
-    }
-
-    // Get the base version without prerelease or build metadata
-    const baseVersion = versionWithoutPrefix.split('-')[0]
-
-    // Increment the base version according to type
-    const incrementedVersion = semver.inc(baseVersion, type) || baseVersion
-
-    // Build the final version string
-    let newVersion = incrementedVersion
-
-    // Add channel/prerelease information
-    if (channel || prerelease) {
-        const prereleaseIdentifier = channel || prerelease
-
-        if (!channelNumber) {
-            newVersion = `${newVersion}-${prereleaseIdentifier}`
-        } else {
-            // Check if current version has the same prerelease identifier
-            const currentPrerelease = semver.prerelease(versionWithoutPrefix)
-            if (currentPrerelease && currentPrerelease[0] === prereleaseIdentifier) {
-                // If version type changed, reset prerelease number to 1
-                if (semver.gt(incrementedVersion, baseVersion)) {
-                    newVersion = `${newVersion}-${prereleaseIdentifier}.1`
-                } else {
-                    // Increment prerelease number
-                    const currentNumber = parseInt(currentPrerelease[1] as string, 10) || 0
-                    newVersion = `${newVersion}-${prereleaseIdentifier}.${currentNumber + 1}`
-                }
-            } else {
-                // Start new prerelease sequence
-                newVersion = `${newVersion}-${prereleaseIdentifier}.1`
-            }
-        }
-    }
-
-    // Add build metadata if specified
-    if (build) {
-        newVersion = `${newVersion}+${build}`
-    }
-
-    // Add prefix back if specified
-    return prefix ? `${prefix}${newVersion}` : newVersion
-}
+const finalizeVersion = (version: string, prefix?: string): string => {
+  return prefix ? `${prefix}${version}` : version;
+};

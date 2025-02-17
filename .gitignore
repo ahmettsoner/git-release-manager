@@ -5,7 +5,7 @@ dist/
 .DS_Store
 *.log
 .env
-<<<<<<< HEAD
-=======
 notes/
->>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
+
+# Test temporary files
+temp/

@@ -1,5 +1,4 @@
 import { ChangelogCliArgs } from '../cli/types/ChangelogCliArgs'
-import { Config } from '../config/types/Config'
 import { VersionManager } from '../modules/version/VersionManager'
 import { ChangelogValidator } from '../modules/changelog/ChangelogValidator'
 import { readConfig } from '../config/configManager'

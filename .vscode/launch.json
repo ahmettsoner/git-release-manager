@@ -7,11 +7,7 @@
             "name": "Changelog",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
-<<<<<<< HEAD
-            "args": ["changelog", "--point", "f0dda44", "--mergeAll"],
-=======
             "args": ["changelog"],
->>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
             "preLaunchTask": "tsc: build & copy",
             "outFiles": ["${workspaceFolder}/dist/**/*.js"]
         },
@@ -21,11 +17,7 @@
             "name": "Version",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
-<<<<<<< HEAD
-            "args": ["version", "--init", "0.0.1", "--prefix", "v"],
-=======
-            "args": ["version", "--channel", "ch1", "--no-channel-number"],
->>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
+            "args": ["version", "--prerelease", "alpha"],
             "preLaunchTask": "tsc: build & copy",
             "outFiles": ["${workspaceFolder}/dist/**/*.js"]
         },
