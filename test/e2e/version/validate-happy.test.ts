@@ -5,7 +5,7 @@ import simpleGit, { SimpleGit } from 'simple-git'
 import { createTestProject } from '../projectSetup'
 
 describe('E2E: Version validate operations', () => {
-    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/validate/error')
+    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/validate/happy')
     const PROJECT_DIR = join(E2E_DIR, 'test-project')
     let git: SimpleGit
 

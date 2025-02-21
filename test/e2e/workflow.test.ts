@@ -51,7 +51,7 @@ describe('E2E: Complete Release Workflow', () => {
         fs.rmSync(E2E_DIR, { recursive: true, force: true })
     })
 
-    // test('Complete release workflow', async () => {
+    test('Complete release workflow', async () => {
     //     // 1. Feature branch oluştur
     //     execSync('grm branch --feature new-feature', { cwd: PROJECT_DIR })
 
@@ -112,7 +112,7 @@ describe('E2E: Complete Release Workflow', () => {
     //         'utf8'
     //     )
     //     expect(changelog).toContain('new feature')
-    // })
+    })
 })
 
 // Daha spesifik E2E test senaryoları

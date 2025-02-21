@@ -5,7 +5,6 @@ import { resolveReference } from './utils/referenceUtils'
 import { getCommitCount } from './utils/commitUtils'
 import { getTags } from './utils/tagUtils'
 import { RangeSummary } from '../changes/types/RangeSummary'
-import { Tag } from './types/Tag'
 
 export async function resolveGitReferences(options?: ChangelogCliArgs): Promise<{ resolvedFrom: GitReference | null; resolvedTo: GitReference | null }> {
     let resolvedFrom: GitReference | null

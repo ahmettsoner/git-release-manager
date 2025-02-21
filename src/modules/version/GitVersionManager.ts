@@ -65,20 +65,30 @@ export class GitVersionManager {
 
 
     async compareVersions(compareVersion: string): Promise<void> {
+        // Fetch the latest version tag from the repository
         const latestVersion = await this.getLatestTag()
+
+        // Use semver to compare the two versions
         const comparison = semver.compare(latestVersion, compareVersion)
-        
+
+        // Determine the relationship between the two versions
         let comparisonText = ''
         if (comparison > 0) {
+            // latestVersion is greater than compareVersion
             comparisonText = `${compareVersion} is behind ${latestVersion}`
         } else if (comparison < 0) {
+            // compareVersion is greater than latestVersion
             comparisonText = `${compareVersion} is ahead of ${latestVersion}`
         } else {
+            // Both versions are equal
             comparisonText = `${compareVersion} is the same as ${latestVersion}`
         }
 
+        // Print the comparison result
         console.log(`Comparing ${compareVersion} with ${latestVersion}`)
         console.log(comparisonText)
+
+        // Print the changes between the compared versions
         console.log('\nChanges:')
         const diff = await git.diff([`${compareVersion}...${latestVersion}`])
         console.log(diff)

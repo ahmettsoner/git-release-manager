@@ -23,7 +23,7 @@ export async function createEmptyTestWorkspace(
         await git.addConfig('user.name', 'E2E Test')
         await git.addConfig('user.email', 'e2e@test.com')
         await git.add('.')
-        await git.commit('initial commit')
+        await git.commit('initial commit', [], { '--allow-empty': null });
     }
 
     // 5. GitHub API mock
@@ -62,7 +62,7 @@ export async function createTestProject(
         await git.addConfig('user.name', 'E2E Test')
         await git.addConfig('user.email', 'e2e@test.com')
         await git.add('.')
-        await git.commit('initial commit')
+        await git.commit('initial commit', [], { '--allow-empty': null });
     }
 
     // 4. npm init

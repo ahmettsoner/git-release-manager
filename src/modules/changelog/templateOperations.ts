@@ -114,7 +114,7 @@ export async function renderChangelogTemplate(templatePath: string, options: Cha
     }
     const rangeSummary = await getRangeSummary(resolvedFrom, resolvedTo)
     if(rangeSummary.referenceList.length === 0){
-        console.log('No changes found')
+        console.log('No tag found')
         return
     }
 

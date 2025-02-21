@@ -10,7 +10,8 @@ export interface VersionCliArgs extends CliArgs {
     channelNumber?: boolean
     prefix?: string
     prerelease?: string
-    detect?: string | boolean;
+    projectPath?: string;
+    detect?: boolean;
     update?: string | boolean;
     build?: string
     list?: boolean
@@ -25,5 +26,4 @@ export interface VersionCliArgs extends CliArgs {
     validate?: string
     branch?: boolean
     sync?: boolean
-    environment: string
 }

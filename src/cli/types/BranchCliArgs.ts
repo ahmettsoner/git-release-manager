@@ -15,5 +15,4 @@ export interface BranchCliArgs extends CliArgs {
     rebase?: string;
     sync?: boolean;
     push?: boolean;
-    environment: string
 }

@@ -6,6 +6,21 @@ import { createEmptyTestWorkspace } from '../projectSetup'
 describe('E2E: Version auto-detect command', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/auto-detect')
 
+
+    const setupTest = async(project_dir:string, filePath:string, content:string) => {
+        await createEmptyTestWorkspace(project_dir, {
+            withGit: true,
+            withNpm: true,
+            withGitHub: true
+        });
+
+        fs.writeFileSync(filePath, content);
+    }
+    const cleanTest = async (project_dir:string) => {
+
+        fs.rmSync(project_dir, { recursive: true, force: true });
+    }
+
     const PROJECT_DATA = [
         {
             name: "nodejs",
@@ -41,18 +56,10 @@ describe('E2E: Version auto-detect command', () => {
 
     test.each(PROJECT_DATA)('Detect version from %s', async ({ name, file, version, content }) => {
         const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`)
+        const filePath = join(PROJECT_DIR, file);
+        await setupTest(PROJECT_DIR, filePath, content)
 
-        await createEmptyTestWorkspace(PROJECT_DIR, {
-            withGit: true,
-            withNpm: true,
-            withGitHub: true
-        })
-        fs.mkdirSync(PROJECT_DIR, { recursive: true })
-
-        const filePath = join(PROJECT_DIR, file)
-        fs.writeFileSync(filePath, content)
-
-        const versionOutput = execSync(`grm version --detect ${filePath}`, {
+        const versionOutput = execSync(`grm version --detect --project-path ${filePath}`, {
             cwd: PROJECT_DIR,
             encoding: 'utf8'
         })
@@ -60,20 +67,12 @@ describe('E2E: Version auto-detect command', () => {
         expect(versionOutput).toContain(`Current version: ${version}`)
         expect(versionOutput).toContain(`Using project file: ${filePath}`)
 
-        fs.rmSync(PROJECT_DIR, { recursive: true, force: true })
+        await cleanTest(PROJECT_DIR)
     })
     test.each(PROJECT_DATA)('Auto-detect version from %s without specifying a file', async ({ name, file, version, content }) => {
         const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`)
-
-        await createEmptyTestWorkspace(PROJECT_DIR, {
-            withGit: true,
-            withNpm: true,
-            withGitHub: true
-        })
-        fs.mkdirSync(PROJECT_DIR, { recursive: true })
-
-        const filePath = join(PROJECT_DIR, file)
-        fs.writeFileSync(filePath, content)
+        const filePath = join(PROJECT_DIR, file);
+        await setupTest(PROJECT_DIR, filePath, content)
 
         const versionOutput = execSync('grm version --detect', {
             cwd: PROJECT_DIR,
@@ -83,6 +82,6 @@ describe('E2E: Version auto-detect command', () => {
         expect(versionOutput).toContain(`Current version: ${version}`)
         expect(versionOutput).toContain(`Using project file: ${filePath}`)
 
-        fs.rmSync(PROJECT_DIR, { recursive: true, force: true })
+        await cleanTest(PROJECT_DIR)
     })
 })

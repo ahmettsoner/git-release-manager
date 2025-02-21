@@ -1,11 +1,26 @@
-import { execSync } from 'child_process'
-import { join } from 'path'
-import fs from 'fs'
-import { createEmptyTestWorkspace } from '../projectSetup'
+import { execSync } from 'child_process';
+import { join } from 'path';
+import fs from 'fs';
+import { createEmptyTestWorkspace } from '../projectSetup';
 
 describe('E2E: Version update command', () => {
-    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/update')
-    
+    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/update');
+
+
+    const setupTest = async(project_dir:string, filePath:string, content:string) => {
+        await createEmptyTestWorkspace(project_dir, {
+            withGit: true,
+            withNpm: true,
+            withGitHub: true
+        });
+
+        fs.writeFileSync(filePath, content);
+    }
+    const cleanTest = async (project_dir:string) => {
+
+        fs.rmSync(project_dir, { recursive: true, force: true });
+    }
+
     const PROJECT_DATA = [
         {
             name: "nodejs",
@@ -35,31 +50,94 @@ describe('E2E: Version update command', () => {
             updatedVersion: '4.6.0',
             content: `version = '4.5.6'`
         }
-    ]
+    ];
 
-    test.each(PROJECT_DATA)('Update version in %s file', async ({ name, file, initialVersion, updatedVersion, content }) => {
-        const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`)
-        await createEmptyTestWorkspace(PROJECT_DIR, {
-            withGit: true,
-            withNpm: true,
-            withGitHub: true
-        })
-        fs.mkdirSync(PROJECT_DIR, { recursive: true })
+    
+    test.each(PROJECT_DATA)('Update version in %s file with specified version', async ({ name, file, initialVersion, updatedVersion, content }) => {
+        const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`);
+        const filePath = join(PROJECT_DIR, file);
+        await setupTest(PROJECT_DIR, filePath, content)
 
-        const filePath = join(PROJECT_DIR, file)
-        fs.writeFileSync(filePath, content)
+        execSync(`grm version --init ${updatedVersion}`, { cwd: PROJECT_DIR });
 
-        // Run the update command to change the version
+        // Update version with specified value, without using --project-path
         execSync(`grm version --update ${updatedVersion}`, {
+            cwd: PROJECT_DIR,
+            encoding: 'utf8'
+        });
+
+        // Read the updated content and verify the version
+        const updatedContent = fs.readFileSync(filePath, 'utf8');
+        expect(updatedContent).toContain(updatedVersion);
+
+        // Clean up the project directory after the test
+        await cleanTest(PROJECT_DIR)
+    });
+
+    test.each(PROJECT_DATA)('Update version in specified %s file with specified version', async ({ name, file, initialVersion, updatedVersion, content }) => {
+        const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`);
+        const filePath = join(PROJECT_DIR, file);
+        await setupTest(PROJECT_DIR, filePath, content)
+
+        execSync(`grm version --init ${updatedVersion}`, { cwd: PROJECT_DIR });
+
+        // Use --project-path to update version with specified value
+        execSync(`grm version --update ${updatedVersion} --project-path ${filePath}`, {
+            cwd: PROJECT_DIR,
+            encoding: 'utf8'
+        });
+
+        // Read the updated content and verify the version
+        const updatedContent = fs.readFileSync(filePath, 'utf8');
+        expect(updatedContent).toContain(updatedVersion);
+
+        // Clean up the project directory after the test
+        await cleanTest(PROJECT_DIR)
+    });
+
+    test.each(PROJECT_DATA)('Update version in %s file using latest git tag', async ({ name, file, initialVersion, updatedVersion, content }) => {
+        const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`);
+
+        const filePath = join(PROJECT_DIR, file);
+        await setupTest(PROJECT_DIR, filePath, content)
+
+        const versionOutput = execSync(`grm version --init ${updatedVersion}`, { 
             cwd: PROJECT_DIR,
             encoding: 'utf8'
         })
 
+        // Update version with specified value, without using --project-path
+        const updateOutput = execSync(`grm version --update`, {
+            cwd: PROJECT_DIR,
+            encoding: 'utf8'
+        });
+
         // Read the updated content and verify the version
-        const updatedContent = fs.readFileSync(filePath, 'utf8')
-        expect(updatedContent).toContain(updatedVersion)
+        const updatedContent = fs.readFileSync(filePath, 'utf8');
+        expect(updatedContent).toContain(updatedVersion);
 
         // Clean up the project directory after the test
-        fs.rmSync(PROJECT_DIR, { recursive: true, force: true })
-    })
-})
+        await cleanTest(PROJECT_DIR)
+    });
+
+    test.each(PROJECT_DATA)('Update version in specified %s file without specifying version', async ({ name, file, initialVersion, updatedVersion, content }) => {
+        const PROJECT_DIR = join(E2E_DIR, `test-project-${name}`);
+        const filePath = join(PROJECT_DIR, file);
+        await setupTest(PROJECT_DIR, filePath, content)
+
+        execSync(`grm version --init ${updatedVersion}`, { cwd: PROJECT_DIR });
+
+        // Use --project-path to update version with specified value
+        execSync(`grm version --update --project-path ${filePath}`, {
+            cwd: PROJECT_DIR,
+            encoding: 'utf8'
+        });
+
+        // Read the updated content and verify the version
+        const updatedContent = fs.readFileSync(filePath, 'utf8');
+        expect(updatedContent).toContain(updatedVersion);
+
+        // Clean up the project directory after the test
+        await cleanTest(PROJECT_DIR)
+    });
+});

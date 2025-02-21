@@ -6,7 +6,6 @@ export interface ChangelogCliArgs extends CliArgs {
     point?: string
     range?: string
     mergeAll: boolean
-    environment: string
     template: string
     output: string
 }

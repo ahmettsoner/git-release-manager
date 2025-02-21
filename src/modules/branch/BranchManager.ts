@@ -1,9 +1,10 @@
 import { simpleGit, SimpleGit } from 'simple-git'
 import { GitVersionManager } from '../version/GitVersionManager'
+import { Config } from '../../config/types/Config'
 
 export class BranchManager {
-    private git: SimpleGit
-    private gitVersionManager: GitVersionManager
+    private readonly git: SimpleGit
+    private readonly gitVersionManager: GitVersionManager
 
     constructor() {
         this.git = simpleGit()
@@ -96,14 +97,14 @@ export class BranchManager {
     }
 
     async createReleaseBranch(version: string, push?: boolean): Promise<void> {
-        const branchName = `release/v${version}`
+        const branchName = `release/${version}`
         await this.createBranch(branchName, push)
         await this.protectBranch(branchName)
         console.log(`Created protected release branch '${branchName}'`)
     }
 
     async createHotfixBranch(version: string, push?: boolean): Promise<void> {
-        const branchName = `hotfix/v${version}`
+        const branchName = `hotfix/${version}`
         await this.createBranch(branchName, push)
         console.log(`Created hotfix branch '${branchName}'`)
     }
@@ -114,52 +115,85 @@ export class BranchManager {
         console.log(`Created feature branch '${branchName}'`)
     }
 
-    async finishBranch(branchName: string, push?: boolean): Promise<void> {
-        const currentBranch = await this.getCurrentBranch()
-        const gitVersionManager = new GitVersionManager()
+    async finishBranch(config: Config, branchName?: string, push?: boolean): Promise<void> {
+        const currentBranch = await this.getCurrentBranch();
+        const activeBranch = typeof branchName === 'string' && branchName.trim() !== '' ? branchName : currentBranch;
 
-        if (branchName.startsWith('feature/')) {
-            await this.mergeBranch('develop', push)
-        } else if (branchName.startsWith('release/')) {
-            await this.mergeBranch('main', push)
-            await this.mergeBranch('develop', push)
-            // Create tag for release
-            const version = branchName.replace('release/v', '')
-            await gitVersionManager.createGitTag(`v${version}`)
-        } else if (branchName.startsWith('hotfix/')) {
-            await this.mergeBranch('main', push)
-            await this.mergeBranch('develop', push)
-            // Create tag for hotfix
-            const version = branchName.replace('hotfix/v', '')
-            await gitVersionManager.createGitTag(`v${version}`)
+        // Ensure the branch exists
+        const branches = await this.git.branchLocal();
+        if (!branches.all.includes(activeBranch)) {
+            console.log(`The branch ${branchName} does not exist.`);
+            return;
         }
 
-        await this.deleteBranch(branchName)
-        console.log(`Finished and cleaned up branch '${branchName}'`)
+        const gitVersionManager = new GitVersionManager();
+
+        // Determine the branch type from the name
+        const branchType = activeBranch.split('/')[0];
+        const branchConfig = config.branchStrategies[branchType];
+
+        if (!branchConfig) {
+            console.log(`No configuration found for branch type: ${branchType}`);
+            return;
+        }
+
+        // Merge into base branches as per the configuration
+        for (const baseBranch of branchConfig.baseBranches) {
+            console.log(`Attempting to merge ${activeBranch} into ${baseBranch}`);
+            await this.git.checkout(baseBranch);
+            await this.mergeBranch(activeBranch, push);
+        }
+
+        // Create a tag if required by the configuration
+        if (branchConfig.createTag) {
+            const version = activeBranch.replace(`${branchType}/`, '');
+            const formattedVersion = version.startsWith(branchConfig.tagPrefix ?? '')
+                ? version
+                : `${branchConfig.tagPrefix ?? ''}${version}`;
+
+            const tagName = `${formattedVersion}`;
+            await gitVersionManager.createGitTag(tagName);
+        }
+
+        // Delete the branch after merge if specified by the configuration
+        if (branchConfig.deleteAfterMerge) {
+            if(activeBranch == currentBranch){
+                this.switchBranch(branchConfig.baseBranches[0])
+            }
+            await this.deleteBranch(activeBranch);
+            console.log(`Finished and cleaned up branch '${activeBranch}'`);
+        }
     }
 
-    async protectBranch(branchName: string): Promise<void> {
+    async protectBranch(branchName?: string): Promise<void> {
+        const currentBranch = await this.getCurrentBranch();
+        const activeBranch = typeof branchName === 'string' && branchName.trim() !== '' ? branchName : currentBranch;
+
         const protectedBranches = await this.getProtectedBranches()
-        if (!protectedBranches.includes(branchName)) {
-            protectedBranches.push(branchName)
+        if (!protectedBranches.includes(activeBranch)) {
+            protectedBranches.push(activeBranch)
             await this.saveProtectedBranches(protectedBranches)
-            console.log(`Protected branch '${branchName}'`)
+            console.log(`Protected branch '${activeBranch}'`)
         }
     }
 
-    async unprotectBranch(branchName: string): Promise<void> {
+    async unprotectBranch(branchName?: string): Promise<void> {
+        const currentBranch = await this.getCurrentBranch();
+        const activeBranch = typeof branchName === 'string' && branchName.trim() !== '' ? branchName : currentBranch;
+
         const protectedBranches = await this.getProtectedBranches()
-        const index = protectedBranches.indexOf(branchName)
+        const index = protectedBranches.indexOf(activeBranch)
         if (index > -1) {
             protectedBranches.splice(index, 1)
             await this.saveProtectedBranches(protectedBranches)
-            console.log(`Removed protection from branch '${branchName}'`)
+            console.log(`Removed protection from branch '${activeBranch}'`)
         }
     }
 
     async rebaseBranch(branchName: string, push?: boolean): Promise<void> {
-        const currentBranch = await this.getCurrentBranch()
-        await this.git.rebase([branchName])
+        const currentBranch = await this.getCurrentBranch();
+
+        await this.git.rebase([branchName]);
         console.log(`Rebased '${currentBranch}' with '${branchName}'`)
 
         if (push) {
@@ -205,9 +239,9 @@ export class BranchManager {
             }
 
             // If it's undefined or null, return default
-            return ['main', 'master', 'develop']
+            return []
         } catch {
-            return ['main', 'master', 'develop']
+            return []
         }
     }
 

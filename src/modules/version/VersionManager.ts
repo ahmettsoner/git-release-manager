@@ -28,7 +28,7 @@ export class VersionManager {
             }
 
             if (options.detect) {
-                const projectVersion = this.projectVersionManager.detectProjectVersion(typeof options.detect === 'string' ? options.detect : undefined)
+                const projectVersion = this.projectVersionManager.detectProjectVersion(options.projectPath)
                 console.log(`Using project file: ${projectVersion.filePath}\nCurrent version: ${projectVersion.currentVersion}`)
 
                 // Eğer version manipulation flag'leri varsa, versiyon güncelleme işlemlerini yap
@@ -37,6 +37,15 @@ export class VersionManager {
                     // await this.updateVersionInFile(projectFile, newVersion)
                 }
 
+                return
+            }
+        
+            
+            if (options.update) {
+                // Versiyon güncelleme
+                const projectVersion = typeof options.update === 'string' ? options.update : undefined;
+
+                await this.projectVersionManager.updateProjectVersion(projectVersion, options.projectPath)
                 return
             }
 
@@ -95,14 +104,6 @@ export class VersionManager {
             if (options.push) {
                 await this.gitManager.pushChanges(newVersion, options.branch)
                 console.log('Pushed changes to remote')
-            }
-        
-            
-            if (options.update) {
-                // Versiyon güncelleme
-                const projectPath = typeof options.update === 'string' ? options.update : undefined
-
-                await this.projectVersionManager.updateProjectVersion(newVersion, projectPath)
             }
         } catch (error) {
             console.error('Error:', error instanceof Error ? error.message : String(error))

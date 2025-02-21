@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import simpleGit, { SimpleGit } from 'simple-git'
+import { GitVersionManager } from './GitVersionManager'
 
 interface ProjectVersion {
     currentVersion: string
@@ -195,8 +196,12 @@ export class ProjectVersionManager {
             throw error
         }
     }
-    async updateProjectVersion(newVersion: string, path?: string): Promise<void> {
+    async updateProjectVersion(newVersion?: string, path?: string): Promise<void> {
         try {
+            if(!newVersion){
+                const gitVersionManager = new GitVersionManager();
+                newVersion = await gitVersionManager.getLatestTag();
+            }
             const projectVersion = this.detectProjectVersion(path)
             const currentVersion = projectVersion.currentVersion
 

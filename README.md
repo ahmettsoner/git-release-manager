@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-# Git Release Notes Generator
-
-A tool to generate release notes from git commit history.
-
-## Features
-
-- Parse git commit history
-- Generate structured release notes
-- Customizable commit types and formats
-- Support for mentions and links
-- Flexible output formats
-=======
 # Git Release Manager (GRM)
 
 A powerful CLI tool to generate release notes from git commit history and manage version releases effectively.
@@ -27,107 +14,83 @@ A powerful CLI tool to generate release notes from git commit history and manage
 - 🔄 Project version synchronization across different file types
 - 🚀 Automated release process
 - ⚙️ Highly configurable with custom templates
->>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 
 ## Installation
 
 ```bash
-<<<<<<< HEAD
-npm i -g git-release-manager
-=======
 npm install -g git-release-manager
->>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
 ```
 
 ## Usage
 
-<<<<<<< HEAD
-```bash
-node src/main.js [options]
+### Global Options
 
-Options:
-  --from <tag>        Starting tag
-  --to <tag>         Ending tag
-  --tag <tag>        Single tag
-  --output <path>    Output file path
-  --config-file <path> Custom config file path
-```
+GRM supports global configuration options that can be applied to many commands:
 
-## Configuration
+- `--config [path]`: Specify a custom configuration file.
+- `--environment [env]`: Set a specific environment to be used during the operations.
 
-Create a custom config file to override default settings:
-
-```javascript
-module.exports = {
-  commitTypes: [
-    { type: "feat", terms: ["feat", "feature"], title: "Features" }
-  ],
-  linkTypes: [
-    { type: "issue", terms: ["fixes", "resolves"], title: "Issues" }
-  ],
-  mentionTypes: [
-    { type: "reviewer", terms: ["reviewed-by"], title: "Reviewers" }
-  ]
-};
-```
-=======
 ### Version Management
 
 ```bash
-# Show current version
+# Detect current version
 grm version --detect
 
-# Update version in project file
-grm version --detect --update
+# Update version in project
+grm version --update
+
+# Initialize the versioning
+grm version --init 1.0.0
 
 # Increment version
-grm version --major    # or -m
-grm version --minor    # or -i
-grm version --patch    # or -p
+grm version -m   # major
+grm version -i   # minor
+grm version -p   # patch
 
-# Create release with specific channel
-grm version --channel beta
-
-# Create version with tag
-grm version --major --tag
-
-# Push changes and tags
-grm version --major --tag --push
+# Manage channels and tags
+grm version --channel beta --tag
+grm version --build build-meta
+grm version --compare 1.2.0
+grm version --validate 2.0.0
+grm version --sync
+grm version --list --latest
+grm version --revert 1.0.0
 ```
 
 ### Changelog Generation
 
 ```bash
-# Generate changelog for specific range
+# Generate a changelog between specific points
 grm changelog --from v1.0.0 --to v2.0.0
 
-# Generate for single point
+# Generate a changelog for a specific reference
 grm changelog --point v1.0.0
 
-# Custom output
-grm changelog --output CHANGELOG.md
-
-# With custom template
-grm changelog --template path/to/template.ejs
+# Use custom output and templates
+grm changelog --output CHANGELOG.md --template path/to/custom-template.ejs
 ```
 
 ### Branch Management
 
 ```bash
-# Create feature branch
+# Create branches
 grm branch --feature my-feature
-
-# Create release branch
-grm branch --release 2.1.0
-
-# Create hotfix branch
+grm branch --release 2.1.0 
 grm branch --hotfix 2.0.1
 
-# List branches
+# Manage branches
 grm branch --list
-
-# Merge branches
+grm branch --delete my-feature
+grm branch --switch develop
 grm branch --merge feature/my-feature
+grm branch --finish release/2.1.0
+grm branch --protect develop
+grm branch --unprotect develop
+
+# Branch operations with remote
+grm branch --rebase main
+grm branch --sync
+grm branch --push
 ```
 
 ## Supported Project Types
@@ -195,4 +158,3 @@ Ahmet Soner
 ## Repository
 
 [GitHub Repository](https://github.com/ahmettsoner/git-release-manager.git)
->>>>>>> 387c6690752839abcec80de9928319b09a2a4c75
