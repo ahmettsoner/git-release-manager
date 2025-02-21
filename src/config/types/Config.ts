@@ -1,3 +1,4 @@
+import { BranchConfig } from './BranchConfig'
 import { ChannelType } from './ChannelType'
 import { CommitType } from './CommitType'
 import { FileGroups } from './FileGroups'
@@ -25,6 +26,7 @@ export interface Config {
     options: Options
     helpers: any
     template: string
+    branchStrategies: Record<string, BranchConfig>;
 }
 
 export type CommitTypeNames = Config['commitTypes'][number]['type']

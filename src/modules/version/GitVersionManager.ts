@@ -1,7 +1,7 @@
 import simpleGit from "simple-git"
 import semver from 'semver'
 import { VersionCliArgs } from "../../cli/types/VersionCliArgs"
-import { incrementChannelOnly, incrementVersion } from "./versionFormatter"
+import { incrementVersion } from "./versionFormatter"
 
 
 const git = simpleGit()
@@ -31,8 +31,8 @@ export class GitVersionManager {
                     .map(tag => (prefix ? tag.replace(prefix, '') : tag))
                     .filter(tag => semver.valid(tag))
                     .sort(semver.rcompare)[0] || defaultTag
-    
-            return prefix ? `${prefix}${latestTag}` : latestTag
+        
+            return prefix && !latestTag.startsWith(prefix) ? `${prefix}${latestTag}` : latestTag
         } catch (error) {
             console.error('Could not retrieve tags:', error)
             return defaultTag
@@ -65,13 +65,32 @@ export class GitVersionManager {
 
 
     async compareVersions(compareVersion: string): Promise<void> {
+        // Fetch the latest version tag from the repository
         const latestVersion = await this.getLatestTag()
+
+        // Use semver to compare the two versions
         const comparison = semver.compare(latestVersion, compareVersion)
-        const diff = await git.diff([`${compareVersion}...${latestVersion}`])
-    
+
+        // Determine the relationship between the two versions
+        let comparisonText = ''
+        if (comparison > 0) {
+            // latestVersion is greater than compareVersion
+            comparisonText = `${compareVersion} is behind ${latestVersion}`
+        } else if (comparison < 0) {
+            // compareVersion is greater than latestVersion
+            comparisonText = `${compareVersion} is ahead of ${latestVersion}`
+        } else {
+            // Both versions are equal
+            comparisonText = `${compareVersion} is the same as ${latestVersion}`
+        }
+
+        // Print the comparison result
         console.log(`Comparing ${compareVersion} with ${latestVersion}`)
-        console.log(`${compareVersion} is ${comparison === 1 ? 'ahead' : 'behind'} ${latestVersion}`)
+        console.log(comparisonText)
+
+        // Print the changes between the compared versions
         console.log('\nChanges:')
+        const diff = await git.diff([`${compareVersion}...${latestVersion}`])
         console.log(diff)
     }
 
@@ -112,40 +131,31 @@ async createGitTag (version: string): Promise<void> {
         console.error('Could not create git tag:', error)
     }
 }
+    async initVersion(options: VersionCliArgs): Promise<string> {
+        const prefix = options.prefix ?? ''
+        const initialVersion = `${prefix}${typeof options.init === 'string' ? options.init : '0.0.0'}`
+        
+        const tags = await git.tags()
+        if (tags.all.length > 0) {
+            throw new Error('Repository already has tags. Use --reset if needed.')
+        }
+        
+        return initialVersion
+    }
 
     async  generateNewVersion(options: VersionCliArgs): Promise<string> {
         let newVersion: string
     
-        if (options.init) {
-            const tags = await git.tags()
-            if (tags.all.length > 0) {
-                throw new Error('Repository already has tags. Use --reset if needed.')
-            }
-            
-            newVersion = typeof options.init === 'string' ? options.init : '0.0.0'
-        } else {
             const latestTag = await this.getLatestTag(options.prefix, options.channel)
-    
-            if (options.major || options.minor || options.patch) {
-                const type = options.major ? 'major' : options.minor ? 'minor' : 'patch'
-                newVersion = await incrementVersion(latestTag, type, {
-                    channel: options.channel,
-                    channelNumber: options.channelNumber,
-                    prefix: options.prefix,
-                    prerelease: options.prerelease,
-                    build: options.build,
-                })
-            } else if (options.channel) {
-                newVersion = await incrementChannelOnly(latestTag, {
-                    channel: options.channel,
-                    channelNumber: options.channelNumber,
-                    prefix: options.prefix,
-                    build: options.build,
-                })
-            } else {
-                throw new Error('No version increment option specified')
-            }
-        }
+
+            const type = options.major ? 'major' : options.minor ? 'minor' : options.patch ? 'patch' : undefined
+            newVersion = await incrementVersion(latestTag, type, {
+                channel: options.channel,
+                channelNumber: options.channelNumber,
+                prefix: options.prefix,
+                prerelease: options.prerelease,
+                build: options.build,
+            })
     
         return newVersion
     }

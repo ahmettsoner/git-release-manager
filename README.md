@@ -23,63 +23,74 @@ npm install -g git-release-manager
 
 ## Usage
 
+### Global Options
+
+GRM supports global configuration options that can be applied to many commands:
+
+- `--config [path]`: Specify a custom configuration file.
+- `--environment [env]`: Set a specific environment to be used during the operations.
+
 ### Version Management
 
 ```bash
-# Show current version
+# Detect current version
 grm version --detect
 
-# Update version in project file
-grm version --detect --update
+# Update version in project
+grm version --update
+
+# Initialize the versioning
+grm version --init 1.0.0
 
 # Increment version
-grm version --major    # or -m
-grm version --minor    # or -i
-grm version --patch    # or -p
+grm version -m   # major
+grm version -i   # minor
+grm version -p   # patch
 
-# Create release with specific channel
-grm version --channel beta
-
-# Create version with tag
-grm version --major --tag
-
-# Push changes and tags
-grm version --major --tag --push
+# Manage channels and tags
+grm version --channel beta --tag
+grm version --build build-meta
+grm version --compare 1.2.0
+grm version --validate 2.0.0
+grm version --sync
+grm version --list --latest
+grm version --revert 1.0.0
 ```
 
 ### Changelog Generation
 
 ```bash
-# Generate changelog for specific range
+# Generate a changelog between specific points
 grm changelog --from v1.0.0 --to v2.0.0
 
-# Generate for single point
+# Generate a changelog for a specific reference
 grm changelog --point v1.0.0
 
-# Custom output
-grm changelog --output CHANGELOG.md
-
-# With custom template
-grm changelog --template path/to/template.ejs
+# Use custom output and templates
+grm changelog --output CHANGELOG.md --template path/to/custom-template.ejs
 ```
 
 ### Branch Management
 
 ```bash
-# Create feature branch
+# Create branches
 grm branch --feature my-feature
-
-# Create release branch
-grm branch --release 2.1.0
-
-# Create hotfix branch
+grm branch --release 2.1.0 
 grm branch --hotfix 2.0.1
 
-# List branches
+# Manage branches
 grm branch --list
-
-# Merge branches
+grm branch --delete my-feature
+grm branch --switch develop
 grm branch --merge feature/my-feature
+grm branch --finish release/2.1.0
+grm branch --protect develop
+grm branch --unprotect develop
+
+# Branch operations with remote
+grm branch --rebase main
+grm branch --sync
+grm branch --push
 ```
 
 ## Supported Project Types

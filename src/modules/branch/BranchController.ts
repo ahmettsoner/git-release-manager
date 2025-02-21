@@ -1,4 +1,5 @@
 import { BranchCliArgs } from '../../cli/types/BranchCliArgs';
+import { Config } from '../../config/types/Config';
 import { BranchManager } from '../../modules/branch/BranchManager';
 
 export class BranchController {
@@ -8,7 +9,7 @@ export class BranchController {
         this.branchManager = new BranchManager();
     }
 
-    async handleCommand(options: BranchCliArgs): Promise<void> {
+    async handleCommand(options: BranchCliArgs, config: Config): Promise<void> {
         try {
             if (options.create) {
                 await this.branchManager.createBranch(options.create, options.push)
@@ -27,7 +28,7 @@ export class BranchController {
             } else if (options.feature) {
                 await this.branchManager.createFeatureBranch(options.feature, options.push)
             } else if (options.finish) {
-                await this.branchManager.finishBranch(options.finish, options.push)
+                await this.branchManager.finishBranch(config, options.finish, options.push)
             } else if (options.protect) {
                 await this.branchManager.protectBranch(options.protect)
             } else if (options.unprotect) {

@@ -228,5 +228,24 @@
     "helpers": {
         "groupBy": "function(array, key, config) { return array.reduce((result, item) => { const groupKey = key.split('.').reduce((acc, part) => acc && acc[part], item); if (!result[groupKey]) { const matchingType = config.commitTypes.find(ct => ct.terms.includes(groupKey)); const typeTitle = matchingType ? matchingType.title : 'Other Changes'; result[groupKey] = { title: typeTitle, items: [] }; } result[groupKey].items.push(item); return result; }, {}); }",
         "groupByNotes": "function(array, config, includeUnmatched = true) { return array.reduce((result, item) => { if (!item.notes || item.notes.length === 0) return result; item.notes.forEach(note => { const groupKey = note.type; const matchingType = config.noteTypes.find(nt => nt.type === groupKey); if (!matchingType && !includeUnmatched) return; if (!result[groupKey]) { const typeTitle = matchingType ? matchingType.title : groupKey; result[groupKey] = { title: typeTitle, items: [] }; } result[groupKey].items.push({ note, commit: item }); }); return result; }, {}); }"
+    },
+    "branchStrategies":{
+        "feature": {
+            "baseBranches": ["develop"],
+            "createTag": false,
+            "deleteAfterMerge": true
+        },
+        "release": {
+            "baseBranches": ["main", "develop"],
+            "createTag": true,
+            "deleteAfterMerge": true,
+            "tagPrefix": "v"
+        },
+        "hotfix": {
+            "baseBranches": ["main", "develop"],
+            "createTag": true,
+            "deleteAfterMerge": true,
+            "tagPrefix": "hotfix-"
+        }
     }
 }

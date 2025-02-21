@@ -1,10 +1,5 @@
-import { execWithErrorHandling } from '../../../utils/cmd'
 import { RemoteInfo } from '../types/RemoteInfo'
 
-export async function getRemoteUrl(): Promise<string> {
-    const { stdout: remoteUrl } = await execWithErrorHandling('git config --get remote.origin.url')
-    return remoteUrl.trim()
-}
 
 export function parseRemoteUrl(remoteUrl: string): RemoteInfo | null {
     if (!remoteUrl) return null

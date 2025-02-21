@@ -12,7 +12,6 @@ export class ReleaseManager {
 
 
     async  createVersion(version: string, options: VersionCliArgs): Promise<void> {
-        const gitVersionManager = new GitVersionManager()
         const releaseManager = new ReleaseManager()
 
         // Create release branch if requested
@@ -20,13 +19,6 @@ export class ReleaseManager {
             const branchName = `release/v${version}`
             await git.checkoutLocalBranch(branchName)
             console.log(`Created release branch: ${branchName}`)
-        }
-    
-        // Create git tag
-        if (options.tag !== false) {
-            // Default to true if not explicitly set to false
-            await gitVersionManager.createGitTag(version)
-            console.log(`Created tag: ${version}`)
         }
     
         // Handle release notes
@@ -41,12 +33,6 @@ export class ReleaseManager {
         if (options.draft) {
             await releaseManager.createGitHubRelease(version, releaseNotes, true)
             console.log(`Created draft release for version ${version}`)
-        }
-    
-        // Push changes if requested
-        if (options.push) {
-            await gitVersionManager.pushChanges(version, options.branch)
-            console.log('Pushed changes to remote')
         }
     
         console.log(`Version ${version} created successfully`)

@@ -22,8 +22,13 @@ export class VersionManager {
             // Validate version manipulation options
             this.validator.validateVersionOptions(options)
 
+            if (options.reset) {
+                await this.gitManager.resetVersion()
+                return
+            }
+
             if (options.detect) {
-                const projectVersion = this.projectVersionManager.detectProjectVersion(typeof options.detect === 'string' ? options.detect : undefined)
+                const projectVersion = this.projectVersionManager.detectProjectVersion(options.projectPath)
                 console.log(`Using project file: ${projectVersion.filePath}\nCurrent version: ${projectVersion.currentVersion}`)
 
                 // Eğer version manipulation flag'leri varsa, versiyon güncelleme işlemlerini yap
@@ -34,6 +39,15 @@ export class VersionManager {
 
                 return
             }
+        
+            
+            if (options.update) {
+                // Versiyon güncelleme
+                const projectVersion = typeof options.update === 'string' ? options.update : undefined;
+
+                await this.projectVersionManager.updateProjectVersion(projectVersion, options.projectPath)
+                return
+            }
 
             // Handle different version commands
             if (options.list) {
@@ -41,10 +55,6 @@ export class VersionManager {
                 return
             }
 
-            if (options.reset) {
-                await this.gitManager.resetVersion()
-                return
-            }
 
             if (options.latest) {
                 await this.gitManager.showLatestVersion()
@@ -72,14 +82,28 @@ export class VersionManager {
             }
 
             // Handle version creation/update
-            const newVersion = await this.gitManager.generateNewVersion(options)
+            let newVersion = ""
+            if(options.init) {
+                newVersion = await this.gitManager.initVersion(options)
+            }else{
+                newVersion = await this.gitManager.generateNewVersion(options)
+            }
             await this.releaseManager.createVersion(newVersion, options)
 
-            if (options.update) {
-                // Versiyon güncelleme
-                const projectPath = typeof options.update === 'string' ? options.update : undefined
 
-                await this.projectVersionManager.updateProjectVersion(newVersion, projectPath)
+        
+            // Create git tag
+            if (options.tag !== false) {
+                // Default to true if not explicitly set to false
+                await this.gitManager.createGitTag(newVersion)
+                console.log(`Created tag: ${newVersion}`)
+            }
+
+
+            // Push changes if requested
+            if (options.push) {
+                await this.gitManager.pushChanges(newVersion, options.branch)
+                console.log('Pushed changes to remote')
             }
         } catch (error) {
             console.error('Error:', error instanceof Error ? error.message : String(error))

@@ -6,3 +6,6 @@ dist/
 *.log
 .env
 notes/
+
+# Test temporary files
+temp/

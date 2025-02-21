@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
+import simpleGit, { SimpleGit } from 'simple-git'
+import { GitVersionManager } from './GitVersionManager'
 
 interface ProjectVersion {
     currentVersion: string
@@ -88,23 +90,52 @@ class GradleVersion implements ProjectVersion {
 
 class GoModVersion implements ProjectVersion {
     filePath: string
+    git: SimpleGit
+    private latestVersion: string = '0.0.0'
 
     constructor(path = 'go.mod') {
         this.filePath = path
+        this.git = simpleGit(process.cwd())
+
+        // Fetch tags when the class is instantiated
+        this.fetchLatestVersion()
     }
 
     get currentVersion(): string {
-        const content = readFileSync(this.filePath, 'utf8')
-        const match = content.match(/module\s+.+\s+v(.+)/)
-        return match ? match[1] : '0.0.0'
+        return this.latestVersion
+    }
+
+    // Fetch the latest version from git tags
+    private fetchLatestVersion() {
+        this.git.tags()
+            .then(tags => {
+                if (tags.all.length > 0) {
+                    const sortedTags = tags.all.sort(this.compareVersions)
+                    this.latestVersion = sortedTags[sortedTags.length - 1]
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching tags:', error)
+            })
     }
 
     update(newVersion: string): void {
-        let content = readFileSync(this.filePath, 'utf8')
-        content = content.replace(/(module\s+.+\s+v).+/, `$1${newVersion}`)
-        writeFileSync(this.filePath, content)
+        this.git.addTag(newVersion, (err, result) => {
+            if (err) {
+                console.error('Error adding tag:', err)
+            } else {
+                console.log(`Tag added: ${newVersion}`)
+                // Update internal state on success
+                this.latestVersion = newVersion
+            }
+        })
+    }
+
+    private compareVersions(a: string, b: string): number {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
     }
 }
+
 export class ProjectVersionManager {
     private readonly PROJECT_FILES = [
         { pattern: 'package.json', handler: PackageJsonVersion },
@@ -165,8 +196,12 @@ export class ProjectVersionManager {
             throw error
         }
     }
-    async updateProjectVersion(newVersion: string, path?: string): Promise<void> {
+    async updateProjectVersion(newVersion?: string, path?: string): Promise<void> {
         try {
+            if(!newVersion){
+                const gitVersionManager = new GitVersionManager();
+                newVersion = await gitVersionManager.getLatestTag();
+            }
             const projectVersion = this.detectProjectVersion(path)
             const currentVersion = projectVersion.currentVersion
 
