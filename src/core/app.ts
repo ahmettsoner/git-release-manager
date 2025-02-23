@@ -9,8 +9,14 @@ import { renderChangelogTemplate } from '../modules/changelog/templateOperations
 import { writeOutput } from '../modules/output/writer'
 import { CommitCliArgs } from '../cli/types/CommitCliArgs'
 import { CommitController } from '../modules/commit/CommitController'
+import { CommitCreateCliArgs } from '../cli/types/CommitCreateCliArgs'
+import { VersionInitCliArgs } from '../cli/types/VersionInitCliArgs'
+import { VersionSetCliArgs } from '../cli/types/VersionSetCliArgs'
+import { VersionRevertCliArgs } from '../cli/types/VersionRevertCliArgs'
+import { VersionValidateCliArgs } from '../cli/types/VersionValidateCliArgs'
+import { ChangelogGenerateCliArgs } from '../cli/types/ChangelogGenerateCliArgs'
 
-export async function changelogRun(options: ChangelogCliArgs): Promise<void> {
+export async function changelogRun(options: ChangelogGenerateCliArgs): Promise<void> {
     const validator = new ChangelogValidator()
     validator.validateOptions(options)
 
@@ -42,15 +48,79 @@ export async function versionRun(options: VersionCliArgs): Promise<void> {
     }
 }
 
+export async function versionSetRun(options: VersionSetCliArgs): Promise<void> {
+    const versionManager = new VersionManager()
+
+    try {
+        await versionManager.handleVersionCommand(options)
+    } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error))
+        process.exit(1)
+    }
+}
+export async function versionRevertRun(options: VersionRevertCliArgs): Promise<void> {
+    const versionManager = new VersionManager()
+
+    try {
+        await versionManager.handleVersionCommand(options)
+    } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error))
+        process.exit(1)
+    }
+}
+export async function versionValidateRun(options: VersionValidateCliArgs): Promise<void> {
+    const versionManager = new VersionManager()
+
+    try {
+        await versionManager.handleVersionCommand(options)
+    } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error))
+        process.exit(1)
+    }
+}
+export async function versionInitRun(options: VersionInitCliArgs): Promise<void> {
+    const versionManager = new VersionManager()
+
+    try {
+        await versionManager.handleVersionCommand(options)
+    } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error))
+        process.exit(1)
+    }
+}
+
+export async function versionResetRun(options: VersionInitCliArgs): Promise<void> {
+    const versionManager = new VersionManager()
+
+    try {
+        await versionManager.handleVersionCommand(options)
+    } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error))
+        process.exit(1)
+    }
+}
+
 export async function branchRun(options: BranchCliArgs): Promise<void> {
     const controller = new BranchController()
     const config = await readConfig(options?.config, options.environment)
     await controller.handleCommand(options, config)
 }
 
-export async function commitRun(options: CommitCliArgs): Promise<void> {
+export async function commitCreateRun(options: CommitCreateCliArgs): Promise<void> {
     const config = await readConfig(options?.config, options.environment)
     const controller = new CommitController()
-    await controller.handleCommand(options, config)
+    await controller.handleCreateCommand(options, config)
+}
+
+export async function commitListRun(options: CommitCreateCliArgs): Promise<void> {
+    const config = await readConfig(options?.config, options.environment)
+    const controller = new CommitController()
+    await controller.handleListCommand(options, config)
+}
+
+export async function commitAmendRun(options: CommitCreateCliArgs): Promise<void> {
+    const config = await readConfig(options?.config, options.environment)
+    const controller = new CommitController()
+    await controller.handleAmendCommand(options, config)
 }
 

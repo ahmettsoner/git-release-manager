@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import {createTestProject} from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version init happy path', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/init/happy')
@@ -13,7 +13,7 @@ describe('E2E: Version init happy path', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,19 +25,18 @@ describe('E2E: Version init happy path', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Init default version', async () => {
         const initialVersion = '0.0.0'
 
-        const versionOutput = execSync('grm version --init', { 
+        const versionOutput = execSync('grm version --init', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${initialVersion} created successfully`)
-
 
         const tags = await git.tags()
         expect(tags.all).toContain(`${initialVersion}`)
@@ -47,12 +46,11 @@ describe('E2E: Version init happy path', () => {
         const initialVersion = '0.0.0'
         const prefix = 'v'
 
-        const versionOutput = execSync(`grm version --init --prefix ${prefix}`, { 
+        const versionOutput = execSync(`grm version --init --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${prefix}${initialVersion} created successfully`)
-
 
         const tags = await git.tags()
         expect(tags.all).toContain(`${prefix}${initialVersion}`)
@@ -61,9 +59,9 @@ describe('E2E: Version init happy path', () => {
     test('Init custom version', async () => {
         const initialVersion = '1.0.0'
 
-        const versionOutput = execSync(`grm version --init ${initialVersion}`, { 
+        const versionOutput = execSync(`grm version --init ${initialVersion}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${initialVersion} created successfully`)
 
@@ -75,12 +73,11 @@ describe('E2E: Version init happy path', () => {
         const initialVersion = '1.0.0'
         const prefix = 'v'
 
-        const versionOutput = execSync(`grm version --init ${initialVersion} --prefix ${prefix}`, { 
+        const versionOutput = execSync(`grm version --init ${initialVersion} --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${prefix}${initialVersion} created successfully`)
-
 
         const tags = await git.tags()
         expect(tags.all).toContain(`${prefix}${initialVersion}`)

@@ -2,8 +2,9 @@ import { ChangelogCliArgs } from '../../cli/types/ChangelogCliArgs'
 import { Config } from '../../config/types/Config'
 import { writeOutput } from '../../modules/output/writer'
 import { renderChangelogTemplate } from '../../modules/changelog/templateOperations'
+import { ChangelogGenerateCliArgs } from '../../cli/types/ChangelogGenerateCliArgs'
 
-export async function run(options: ChangelogCliArgs, config: Config): Promise<void> {
+export async function run(options: ChangelogGenerateCliArgs, config: Config): Promise<void> {
     let templatePath = options.template || config.template
     let outputOpt = options.output || config.output
 

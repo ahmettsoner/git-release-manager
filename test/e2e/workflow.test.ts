@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from './projectSetup'
+import { cleanupTestProject, createTestProject } from './projectSetup'
 
 describe('E2E: Complete Release Workflow', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e')
@@ -11,9 +11,7 @@ describe('E2E: Complete Release Workflow', () => {
 
     beforeAll(async () => {
         // Dizini temizle ve oluştur
-        if (fs.existsSync(E2E_DIR)) {
-            fs.rmSync(E2E_DIR, { recursive: true, force: true })
-        }
+        await cleanupTestProject(E2E_DIR);
         fs.mkdirSync(E2E_DIR, { recursive: true })
 
         // .gitignore dosyasını kontrol et ve güncelle
@@ -47,8 +45,8 @@ describe('E2E: Complete Release Workflow', () => {
         await git.branch(['-M', 'main']) // Rename master to main if needed
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR);
     })
 
     test('Complete release workflow', async () => {

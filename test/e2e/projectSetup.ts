@@ -83,8 +83,12 @@ function setupGitHubMock() {
 }
 
 // Diğer yardımcı fonksiyonlar
-export function cleanupTestProject(projectPath: string) {
+export async function cleanupTestProject(projectPath: string) {
     if (fs.existsSync(projectPath)) {
-        fs.rmSync(projectPath, { recursive: true, force: true })
+        try {
+            await fs.promises.rm(projectPath, { recursive: true, force: true })
+        } catch (error) {
+            console.error('Error occured when test directory cleaning:', error)
+        }
     }
 }

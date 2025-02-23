@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import {createTestProject} from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version reset happy path', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/reset/happy')
@@ -13,25 +13,25 @@ describe('E2E: Version reset happy path', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
 
     beforeEach(async () => {
-        git.addTag("t1")
+        git.addTag('t1')
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Reset version tags', async () => {
-        const versionOutput = execSync('grm version --reset', { 
+        const versionOutput = execSync('grm version --reset', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
-        expect(versionOutput).toContain("All local tags deleted:")
+        expect(versionOutput).toContain('All local tags deleted:')
 
         const tags = await git.tags()
         expect(tags.all).toHaveLength(0)

@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { join } from 'path';
 import fs from 'fs';
 import simpleGit, { SimpleGit } from 'simple-git';
-import { createTestProject } from '../projectSetup';
+import { cleanupTestProject, createTestProject } from '../projectSetup';
 
 describe('E2E: Branch delete operations', () => {
   const E2E_DIR = join(__dirname, '../../../temp/test/e2e/branch/delete');
@@ -20,10 +20,10 @@ describe('E2E: Branch delete operations', () => {
     await git.checkoutLocalBranch('temporary-branch');
   });
 
-  afterAll(() => {
-    fs.rmSync(E2E_DIR, { recursive: true, force: true });
-  });
-
+  afterAll(async () => {
+      await cleanupTestProject(E2E_DIR);
+  })
+  
   test('Delete an existing branch', async () => {
     const branchToDelete = 'temporary-branch';
 

@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version list operations', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/list')
@@ -13,7 +13,7 @@ describe('E2E: Version list operations', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,10 +25,10 @@ describe('E2E: Version list operations', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
-    
+
     test('List versions', async () => {
         // Initialize with some versions
         execSync('grm version --init 1.0.0', { cwd: PROJECT_DIR })
@@ -39,7 +39,7 @@ describe('E2E: Version list operations', () => {
         // List the latest versions
         const listOutput = execSync('grm version --list 3', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
 
         // Verify the expected output

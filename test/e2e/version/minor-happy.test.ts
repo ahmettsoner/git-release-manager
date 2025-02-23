@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import {createTestProject} from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version minor happy path', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/minor/happy')
@@ -13,7 +13,7 @@ describe('E2E: Version minor happy path', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,16 +25,16 @@ describe('E2E: Version minor happy path', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Minor increment with no existing version should start from 0.0.0', async () => {
         const expectedVersion = '0.1.0'
 
-        const versionOutput = execSync('grm version --minor', { 
+        const versionOutput = execSync('grm version --minor', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -45,14 +45,14 @@ describe('E2E: Version minor happy path', () => {
     test('Minor increment with existing version', async () => {
         // Initialize with 1.2.3
         execSync('grm version --init 1.2.3', {
-            cwd: PROJECT_DIR
+            cwd: PROJECT_DIR,
         })
 
         const expectedVersion = '1.3.0'
-        
-        const versionOutput = execSync('grm version --minor', { 
+
+        const versionOutput = execSync('grm version --minor', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -64,9 +64,9 @@ describe('E2E: Version minor happy path', () => {
         const prefix = 'v'
         const expectedVersion = '0.1.0'
 
-        const versionOutput = execSync(`grm version --minor --prefix ${prefix}`, { 
+        const versionOutput = execSync(`grm version --minor --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${prefix}${expectedVersion} created successfully`)
 
@@ -78,14 +78,14 @@ describe('E2E: Version minor happy path', () => {
         const prefix = 'v'
         // Initialize with v1.2.3
         execSync(`grm version --init 1.2.3 --prefix ${prefix}`, {
-            cwd: PROJECT_DIR
+            cwd: PROJECT_DIR,
         })
 
         const expectedVersion = '1.3.0'
-        
-        const versionOutput = execSync(`grm version --minor --prefix ${prefix}`, { 
+
+        const versionOutput = execSync(`grm version --minor --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${prefix}${expectedVersion} created successfully`)
 

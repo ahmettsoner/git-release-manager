@@ -1,7 +1,7 @@
 import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
-import {createTestProject} from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version init error cases', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/init/error')
@@ -11,24 +11,24 @@ describe('E2E: Version init error cases', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
-        const versionOutput = execSync('grm version --init', { 
+        const versionOutput = execSync('grm version --init', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`created successfully`)
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Should throw error when trying to init version with existing tags', async () => {
         expect(() => {
-            execSync('grm version --init', { 
+            execSync('grm version --init', {
                 cwd: PROJECT_DIR,
-                encoding: 'utf8'
+                encoding: 'utf8',
             })
         }).toThrow('Repository already has tags. Use --reset if needed.')
     })
