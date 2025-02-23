@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version with prefix flag', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/prefix')
@@ -13,7 +13,7 @@ describe('E2E: Version with prefix flag', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,8 +25,8 @@ describe('E2E: Version with prefix flag', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Prefix with init version', async () => {
@@ -35,7 +35,7 @@ describe('E2E: Version with prefix flag', () => {
 
         const versionOutput = execSync(`grm version --init 1.0.0 --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -48,10 +48,10 @@ describe('E2E: Version with prefix flag', () => {
         execSync(`grm version --init 1.0.0 --prefix ${prefix}`, { cwd: PROJECT_DIR })
 
         const expectedVersion = 'v2.0.0'
-        
+
         const versionOutput = execSync(`grm version --major --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -67,7 +67,7 @@ describe('E2E: Version with prefix flag', () => {
 
         const versionOutput = execSync(`grm version --minor --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -83,7 +83,7 @@ describe('E2E: Version with prefix flag', () => {
 
         const versionOutput = execSync(`grm version --patch --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -97,7 +97,7 @@ describe('E2E: Version with prefix flag', () => {
 
         const versionOutput = execSync(`grm version --init --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 

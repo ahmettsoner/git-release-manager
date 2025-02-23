@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version sync and operations', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/sync')
@@ -13,7 +13,7 @@ describe('E2E: Version sync and operations', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,18 +25,18 @@ describe('E2E: Version sync and operations', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Sync without remote changes', async () => {
         execSync('grm version --init 1.0.0', { cwd: PROJECT_DIR })
 
-        const syncOutput = execSync('grm version --sync', { 
+        const syncOutput = execSync('grm version --sync', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
-        
+
         expect(syncOutput).toContain('Synced tags with remote')
         const tags = await git.tags()
         expect(tags.all).toContain('1.0.0')

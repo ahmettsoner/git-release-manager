@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version with channel flag', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/channel')
@@ -13,7 +13,7 @@ describe('E2E: Version with channel flag', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,8 +25,8 @@ describe('E2E: Version with channel flag', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Channel with no version, should start from 0.0.0-alpha.0', async () => {
@@ -34,7 +34,7 @@ describe('E2E: Version with channel flag', () => {
 
         const versionOutput = execSync('grm version --channel alpha', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -47,10 +47,10 @@ describe('E2E: Version with channel flag', () => {
         execSync('grm version --init 1.0.0', { cwd: PROJECT_DIR })
 
         const expectedVersion = '2.0.0-alpha.1'
-        
+
         const versionOutput = execSync('grm version --major --channel alpha', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -64,7 +64,7 @@ describe('E2E: Version with channel flag', () => {
 
         const versionOutput = execSync(`grm version --channel alpha --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${prefix}${expectedVersion} created successfully`)
 
@@ -77,7 +77,7 @@ describe('E2E: Version with channel flag', () => {
 
         const versionOutput = execSync('grm version --channel alpha --no-channel-number', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -93,7 +93,7 @@ describe('E2E: Version with channel flag', () => {
 
         const versionOutput = execSync(`grm version --major --channel alpha --prefix ${prefix} --no-channel-number`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${prefix}${expectedVersion} created successfully`)
 
@@ -109,7 +109,7 @@ describe('E2E: Version with channel flag', () => {
 
         const versionOutput = execSync('grm version --minor --channel alpha', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -125,7 +125,7 @@ describe('E2E: Version with channel flag', () => {
 
         const versionOutput = execSync('grm version --patch --channel alpha', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -141,13 +141,13 @@ describe('E2E: Version with channel flag', () => {
 
         let versionOutput = execSync('grm version --channel alpha', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion1} created successfully`)
 
         versionOutput = execSync('grm version --channel alpha', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion2} created successfully`)
 

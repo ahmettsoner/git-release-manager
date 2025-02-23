@@ -12,6 +12,7 @@ import { ReferenceTypesEnum } from '../changes/types/ReferenceTypesEnum'
 import { Context } from '../changes/types/Context'
 import { GitReference } from '../git/types/GitReference'
 import { Repository } from '../git/types/Repository'
+import { ChangelogGenerateCliArgs } from '../../cli/types/ChangelogGenerateCliArgs'
 
 export async function getChangeInformation(rangeInfo: RangeSummary): Promise<ChangeInformation> {
     let header: string | null
@@ -103,7 +104,7 @@ export async function getRangeSummary(resolvedFrom: GitReference, resolvedTo: Gi
 
     return rangeSummary
 }
-export async function renderChangelogTemplate(templatePath: string, options: ChangelogCliArgs, config: Config) {
+export async function renderChangelogTemplate(templatePath: string, options: ChangelogGenerateCliArgs, config: Config) {
     let fileData: string = ''
     const date = new Date().toISOString().split('T')[0]
     const repository = await getCurrentRepositoryAsync()

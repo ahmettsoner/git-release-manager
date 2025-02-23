@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version with build metadata', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/build')
@@ -13,7 +13,7 @@ describe('E2E: Version with build metadata', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,8 +25,8 @@ describe('E2E: Version with build metadata', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Build metadata without existing version', async () => {
@@ -34,7 +34,7 @@ describe('E2E: Version with build metadata', () => {
 
         const versionOutput = execSync('grm version --build 001', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -47,10 +47,10 @@ describe('E2E: Version with build metadata', () => {
         execSync('grm version --init 1.0.0', { cwd: PROJECT_DIR })
 
         const expectedVersion = '2.0.0+build42'
-        
+
         const versionOutput = execSync('grm version --major --build build42', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -64,7 +64,7 @@ describe('E2E: Version with build metadata', () => {
 
         const versionOutput = execSync(`grm version --build abc --prefix ${prefix}`, {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion} created successfully`)
 
@@ -77,16 +77,16 @@ describe('E2E: Version with build metadata', () => {
         const expectedVersion2 = '0.0.0+beta2'
 
         execSync('grm version --init 0.0.0', { cwd: PROJECT_DIR })
-        
+
         let versionOutput = execSync('grm version --build beta1', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion1} created successfully`)
 
         versionOutput = execSync('grm version --build beta2', {
             cwd: PROJECT_DIR,
-            encoding: 'utf8'
+            encoding: 'utf8',
         })
         expect(versionOutput).toContain(`Version ${expectedVersion2} created successfully`)
 

@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { join } from 'path';
 import fs from 'fs';
 import simpleGit, { SimpleGit } from 'simple-git';
-import { createTestProject } from '../projectSetup';
+import { cleanupTestProject, createTestProject } from '../projectSetup';
 
 describe('E2E: Branch feature operations', () => {
   const E2E_DIR = join(__dirname, '../../../temp/test/e2e/branch/feature');
@@ -24,9 +24,9 @@ describe('E2E: Branch feature operations', () => {
     await git.commit('Initial commit on master');
   });
 
-  afterAll(() => {
-    fs.rmSync(E2E_DIR, { recursive: true, force: true });
-  });
+  afterAll(async () => {
+    await cleanupTestProject(E2E_DIR);
+  })
   
   test('Create and switch to a feature branch', async () => {
     const featureBranch = 'login';

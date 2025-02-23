@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
 import fs from 'fs';
-import { createEmptyTestWorkspace } from '../projectSetup';
+import { cleanupTestProject, createEmptyTestWorkspace } from '../projectSetup';
 
 describe('E2E: Version update command', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/update');
@@ -16,10 +16,7 @@ describe('E2E: Version update command', () => {
 
         fs.writeFileSync(filePath, content);
     }
-    const cleanTest = async (project_dir:string) => {
-
-        fs.rmSync(project_dir, { recursive: true, force: true });
-    }
+    
 
     const PROJECT_DATA = [
         {
@@ -71,7 +68,7 @@ describe('E2E: Version update command', () => {
         expect(updatedContent).toContain(updatedVersion);
 
         // Clean up the project directory after the test
-        await cleanTest(PROJECT_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     });
 
     test.each(PROJECT_DATA)('Update version in specified %s file with specified version', async ({ name, file, initialVersion, updatedVersion, content }) => {
@@ -92,7 +89,7 @@ describe('E2E: Version update command', () => {
         expect(updatedContent).toContain(updatedVersion);
 
         // Clean up the project directory after the test
-        await cleanTest(PROJECT_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     });
 
     test.each(PROJECT_DATA)('Update version in %s file using latest git tag', async ({ name, file, initialVersion, updatedVersion, content }) => {
@@ -117,7 +114,7 @@ describe('E2E: Version update command', () => {
         expect(updatedContent).toContain(updatedVersion);
 
         // Clean up the project directory after the test
-        await cleanTest(PROJECT_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     });
 
     test.each(PROJECT_DATA)('Update version in specified %s file without specifying version', async ({ name, file, initialVersion, updatedVersion, content }) => {
@@ -138,6 +135,6 @@ describe('E2E: Version update command', () => {
         expect(updatedContent).toContain(updatedVersion);
 
         // Clean up the project directory after the test
-        await cleanTest(PROJECT_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     });
 });

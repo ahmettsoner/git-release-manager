@@ -1,6 +1,8 @@
 import { LogResult, Options, simpleGit, SimpleGit } from 'simple-git'
 import { CommitCliArgs } from '../../cli/types/CommitCliArgs'
 import { Config } from '../../config/types/Config'
+import { CommitListCliArgs } from '../../cli/types/CommitListCliArgs'
+import { CommitCreateCliArgs } from '../../cli/types/CommitCreateCliArgs'
 
 export class CommitManager {
     private readonly git: SimpleGit
@@ -9,15 +11,14 @@ export class CommitManager {
         this.git = simpleGit()
     }
 
-    async createCommit(options: CommitCliArgs, config: Config): Promise<void> {
+    async stageAll(){
+        await this.git.add('.')
+    }
+    async stageFiles(files:string[]){
+        await this.git.add(files)
+    }
+    async createCommit(options: CommitCreateCliArgs, config: Config): Promise<void> {
         try {
-            // Stage files
-            if (options.all) {
-                await this.git.add('.')
-            } else if (options.file) {
-                await this.git.add(options.file)
-            }
-
             // Prepare commit message parts
             const commitMessage = []
             if (options.type && options.scope) {
@@ -41,7 +42,7 @@ export class CommitManager {
             const commitOptions: Options = {};
             if (options.noVerify) commitOptions['--no-verify'] = null;
             if (options.sign) commitOptions['--sign'] = null;
-            if (options.amend) commitOptions['--amend'] = null;
+            // if (options.amend) commitOptions['--amend'] = null;
             
 
             // Execute commit
@@ -57,7 +58,7 @@ export class CommitManager {
         }
     }
 
-    async listCommits(options: CommitCliArgs, config: Config): Promise<void> {
+    async listCommits(options: CommitListCliArgs, config: Config): Promise<void> {
         try {
             const count = typeof options.count === 'number' ? options.count : 1;
             const log: LogResult = await this.git.log({ maxCount: count });

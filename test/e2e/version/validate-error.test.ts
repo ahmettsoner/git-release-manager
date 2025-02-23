@@ -2,7 +2,7 @@ import { execSync } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
-import { createTestProject } from '../projectSetup'
+import { cleanupTestProject, createTestProject } from '../projectSetup'
 
 describe('E2E: Version validate operations', () => {
     const E2E_DIR = join(__dirname, '../../../temp/test/e2e/version/validate/error')
@@ -13,7 +13,7 @@ describe('E2E: Version validate operations', () => {
         await createTestProject(PROJECT_DIR, {
             withGit: true,
             withNpm: true,
-            withGitHub: true
+            withGitHub: true,
         })
         git = simpleGit(PROJECT_DIR)
     })
@@ -25,16 +25,16 @@ describe('E2E: Version validate operations', () => {
         }
     })
 
-    afterAll(() => {
-        fs.rmSync(E2E_DIR, { recursive: true, force: true })
+    afterAll(async () => {
+        await cleanupTestProject(E2E_DIR)
     })
 
     test('Validate an incorrect version string', () => {
-        const version = "1.0"
+        const version = '1.0'
         expect(() => {
             execSync(`grm version --validate ${version}`, {
                 cwd: PROJECT_DIR,
-                encoding: 'utf8'
+                encoding: 'utf8',
             })
         }).toThrow(`Invalid version format: ${version}`)
     })
