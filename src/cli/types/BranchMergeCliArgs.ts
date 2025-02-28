@@ -1,6 +1,6 @@
 import { CliArgs } from './CliArgs'
 
-export interface BranchCreateCliArgs extends CliArgs {
+export interface BranchMergeCliArgs extends CliArgs {
     name: string,
     push: boolean,
 }

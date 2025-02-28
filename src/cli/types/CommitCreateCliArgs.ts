@@ -1,10 +1,9 @@
 import { CliArgs } from "./CliArgs";
 
 export interface CommitCreateCliArgs extends CliArgs {
-    message?: string;           // Commit başlığıı
-    body?: string[];            // Commit mesajı
-    all?: boolean;              // Tüm değişiklikleri sahneler
-    file?: string[];            // Belirli dosyaları commit eder
+    message?: string;
+    body?: string[];
+    add?: "all" | "empty" | string[];
     type?: string;              // Commit türü (feat, fix, chore, etc.)
     scope?: string;             // Commit kapsamı
     breaking?: boolean;         // Breaking change olup olmadığını belirtir

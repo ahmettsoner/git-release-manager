@@ -23,14 +23,6 @@ export class CommitController {
 
     async handleCreateCommand(options: CommitCreateCliArgs, config: Config): Promise<void> {
         try {
-            // Staging logic if provided
-            if (options.all) {
-                await this.commitManager.stageAll()
-            } else if (options.file) {
-                await this.commitManager.stageFiles(options.file)
-            }
-
-            // After staging, perform the commit
             await this.commitManager.createCommit(options, config)
         } catch (error) {
             console.error('Error:', error instanceof Error ? error.message : String(error))

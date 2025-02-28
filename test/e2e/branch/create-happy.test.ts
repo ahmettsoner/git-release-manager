@@ -25,7 +25,7 @@ describe('E2E: Branch create operations', () => {
     test('Create a new branch', async () => {
         // Create a new branch using the CLI command
         const branchName = 'new-feature-branch'
-        execSync(`grm branch --create ${branchName}`, { cwd: PROJECT_DIR })
+        execSync(`grm branch create ${branchName}`, { cwd: PROJECT_DIR })
 
         // Fetch the list of branches to verify the new branch was created
         const branches = await git.branchLocal()
