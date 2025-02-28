@@ -1,4 +1,3 @@
-import { ChangelogCliArgs } from '../../cli/types/ChangelogCliArgs'
 import { Config } from '../../config/types/Config'
 import { listCommitsAsync } from '../git/commits/commitProcessor'
 import { getCurrentRepositoryAsync } from '../git/context'
@@ -12,7 +11,7 @@ import { ReferenceTypesEnum } from '../changes/types/ReferenceTypesEnum'
 import { Context } from '../changes/types/Context'
 import { GitReference } from '../git/types/GitReference'
 import { Repository } from '../git/types/Repository'
-import { ChangelogGenerateCliArgs } from '../../cli/types/ChangelogGenerateCliArgs'
+import { ChangelogGenerateCliArgs } from '../../commands/changelog/types/ChangelogGenerateCliArgs'
 
 export async function getChangeInformation(rangeInfo: RangeSummary): Promise<ChangeInformation> {
     let header: string | null

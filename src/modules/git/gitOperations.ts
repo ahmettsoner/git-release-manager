@@ -1,11 +1,10 @@
 import { GitReference } from './types/GitReference'
-import { ChangelogCliArgs } from '../../cli/types/ChangelogCliArgs'
 import { formatRange, parseRange } from './utils/rangeOperations'
 import { resolveReference } from './utils/referenceUtils'
 import { getCommitCount } from './utils/commitUtils'
 import { getTags } from './utils/tagUtils'
 import { RangeSummary } from '../changes/types/RangeSummary'
-import { ChangelogGenerateCliArgs } from '../../cli/types/ChangelogGenerateCliArgs'
+import { ChangelogGenerateCliArgs } from '../../commands/changelog/types/ChangelogGenerateCliArgs'
 
 export async function resolveGitReferences(options?: ChangelogGenerateCliArgs): Promise<{ resolvedFrom: GitReference | null; resolvedTo: GitReference | null }> {
     let resolvedFrom: GitReference | null

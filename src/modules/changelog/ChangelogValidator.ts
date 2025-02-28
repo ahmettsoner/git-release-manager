@@ -1,5 +1,5 @@
-import { VersionCliArgs } from "../../cli/types/VersionCliArgs"
 import semver from 'semver'
+import { VersionCliArgs } from '../../commands/version/types/VersionCliArgs'
 
 export class ChangelogValidator {
     public validateOptions(options: VersionCliArgs): void {

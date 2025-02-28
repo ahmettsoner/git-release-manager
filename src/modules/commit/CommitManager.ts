@@ -1,7 +1,7 @@
 import { LogResult, Options, simpleGit, SimpleGit } from 'simple-git'
 import { Config } from '../../config/types/Config'
-import { CommitListCliArgs } from '../../cli/types/CommitListCliArgs'
-import { CommitCreateCliArgs } from '../../cli/types/CommitCreateCliArgs'
+import { CommitCreateCliArgs } from '../../commands/commit/types/CommitCreateCliArgs'
+import { CommitListCliArgs } from '../../commands/commit/types/CommitListCliArgs'
 
 export class CommitManager {
     private readonly git: SimpleGit
@@ -19,12 +19,12 @@ export class CommitManager {
     async createCommit(options: CommitCreateCliArgs, config: Config): Promise<void> {
         try {
             const commitOptions: Options = {};
-            if (options.add == "all") {
+            if (options.stage == "all") {
                 await this.stageAll()
-            } else if (options.add == 'empty') {
+            } else if (options.stage == 'any') {
                 commitOptions['--allow-empty'] = null;
             } else {
-                await this.stageFiles(options.add as string[])
+                await this.stageFiles(options.stage as string[])
             }
 
 

@@ -1,7 +1,6 @@
-import { CliArgs } from '../../cli/types/CliArgs'
-import { CommitCliArgs } from '../../cli/types/CommitCliArgs'
-import { CommitCreateCliArgs } from '../../cli/types/CommitCreateCliArgs'
-import { CommitListCliArgs } from '../../cli/types/CommitListCliArgs'
+import { CommitCreateCliArgs } from '../../commands/commit/types/CommitCreateCliArgs'
+import { CommitListCliArgs } from '../../commands/commit/types/CommitListCliArgs'
+import { CliArgs } from '../../commands/types/CliArgs'
 import { Config } from '../../config/types/Config'
 import { CommitManager } from './CommitManager'
 

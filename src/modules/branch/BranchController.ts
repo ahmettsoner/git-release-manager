@@ -1,16 +1,16 @@
-import { BranchCliArgs } from '../../cli/types/BranchCliArgs';
-import { BranchCreateCliArgs } from '../../cli/types/BranchCreateCliArgs';
-import { BranchDeleteCliArgs } from '../../cli/types/BranchDeleteCliArgs';
-import { BranchListCliArgs } from '../../cli/types/BranchListCliArgs';
-import { BranchMergeCliArgs } from '../../cli/types/BranchMergeCliArgs';
-import { BranchProtectCliArgs } from '../../cli/types/BranchProtectCliArgs';
-import { BranchRebaseCliArgs } from '../../cli/types/BranchRebaseCliArgs';
-import { BranchSwitchCliArgs } from '../../cli/types/BranchSwitchCliArgs';
+import { BranchCliArgs } from '../../commands/branch/types/BranchCliArgs';
+import { BranchCreateCliArgs } from '../../commands/branch/types/BranchCreateCliArgs';
+import { BranchDeleteCliArgs } from '../../commands/branch/types/BranchDeleteCliArgs';
+import { BranchListCliArgs } from '../../commands/branch/types/BranchListCliArgs';
+import { BranchMergeCliArgs } from '../../commands/branch/types/BranchMergeCliArgs';
+import { BranchProtectCliArgs } from '../../commands/branch/types/BranchProtectCliArgs';
+import { BranchRebaseCliArgs } from '../../commands/branch/types/BranchRebaseCliArgs';
+import { BranchSwitchCliArgs } from '../../commands/branch/types/BranchSwitchCliArgs';
 import { Config } from '../../config/types/Config';
 import { BranchManager } from '../../modules/branch/BranchManager';
 
 export class BranchController {
-    private branchManager: BranchManager;
+    private readonly branchManager: BranchManager;
 
     constructor() {
         this.branchManager = new BranchManager();
