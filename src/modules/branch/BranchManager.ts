@@ -22,7 +22,7 @@ export class BranchManager {
         }
     }
 
-    async deleteBranch(branchName: string): Promise<void> {
+    async deleteBranch(branchName: string, push?: boolean): Promise<void> {
         const currentBranch = await this.getCurrentBranch()
         if (currentBranch === branchName) {
             throw new Error(`Cannot delete the current branch: ${branchName}`)
@@ -36,12 +36,14 @@ export class BranchManager {
         await this.git.deleteLocalBranch(branchName, true)
         console.log(`Deleted branch '${branchName}'`)
 
+        if (push) {
         try {
             await this.git.push(['origin', '--delete', branchName])
             console.log(`Deleted remote branch '${branchName}'`)
         } catch (error) {
             console.log(`Note: Remote branch '${branchName}' doesn't exist or already deleted`)
         }
+    }
     }
     async listBranches(): Promise<void> {
         const branchSummary = await this.git.branch(['-a'])

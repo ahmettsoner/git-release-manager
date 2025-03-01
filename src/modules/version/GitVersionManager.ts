@@ -1,7 +1,7 @@
 import simpleGit from "simple-git"
 import semver from 'semver'
-import { VersionCliArgs } from "../../cli/types/VersionCliArgs"
 import { incrementVersion } from "./versionFormatter"
+import { VersionCliArgs } from "../../commands/version/types/VersionCliArgs"
 
 
 const git = simpleGit()

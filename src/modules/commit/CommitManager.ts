@@ -1,8 +1,7 @@
 import { LogResult, Options, simpleGit, SimpleGit } from 'simple-git'
-import { CommitCliArgs } from '../../cli/types/CommitCliArgs'
 import { Config } from '../../config/types/Config'
-import { CommitListCliArgs } from '../../cli/types/CommitListCliArgs'
-import { CommitCreateCliArgs } from '../../cli/types/CommitCreateCliArgs'
+import { CommitCreateCliArgs } from '../../commands/commit/types/CommitCreateCliArgs'
+import { CommitListCliArgs } from '../../commands/commit/types/CommitListCliArgs'
 
 export class CommitManager {
     private readonly git: SimpleGit
@@ -19,6 +18,16 @@ export class CommitManager {
     }
     async createCommit(options: CommitCreateCliArgs, config: Config): Promise<void> {
         try {
+            const commitOptions: Options = {};
+            if (options.stage == "all") {
+                await this.stageAll()
+            } else if (options.stage == 'any') {
+                commitOptions['--allow-empty'] = null;
+            } else {
+                await this.stageFiles(options.stage as string[])
+            }
+
+
             // Prepare commit message parts
             const commitMessage = []
             if (options.type && options.scope) {
@@ -39,14 +48,13 @@ export class CommitManager {
 
             // Convert commit options to an array format:
 
-            const commitOptions: Options = {};
             if (options.noVerify) commitOptions['--no-verify'] = null;
             if (options.sign) commitOptions['--sign'] = null;
             // if (options.amend) commitOptions['--amend'] = null;
             
 
             // Execute commit
-            await this.git.commit(commitMessage.join(''), options.file || [], commitOptions);
+            await this.git.commit(commitMessage.join(''), commitOptions);
 
             // // Optionally push changes
             // if (options.push) {

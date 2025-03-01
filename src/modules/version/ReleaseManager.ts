@@ -1,7 +1,6 @@
 import simpleGit from "simple-git"
-import { VersionCliArgs } from "../../cli/types/VersionCliArgs"
 import { readFileSync } from "fs"
-import { GitVersionManager } from "./GitVersionManager"
+import { VersionCliArgs } from "../../commands/version/types/VersionCliArgs"
 
 const git = simpleGit()
 
