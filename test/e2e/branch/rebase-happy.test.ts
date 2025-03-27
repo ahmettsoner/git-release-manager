@@ -1,66 +1,61 @@
-import { execSync } from 'child_process'
-import { join } from 'path'
-import fs from 'fs'
-import simpleGit, { SimpleGit } from 'simple-git'
-import { cleanupTestProject, createTestProject } from '../projectSetup'
+import { execSync } from 'child_process';
+import { join } from 'path';
+import fs from 'fs';
+import simpleGit, { SimpleGit } from 'simple-git';
+import { cleanupTestProject, createTestProject } from '../projectSetup';
 
 describe('E2E: Branch rebase operations', () => {
-    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/branch/rebase')
-    const PROJECT_DIR = join(E2E_DIR, 'test-project')
-    let git: SimpleGit
+    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/branch/rebase');
+    const PROJECT_DIR = join(E2E_DIR, 'test-project');
+    const REMOTE_DIR = join(E2E_DIR, 'remote-repo');
+    let git: SimpleGit;
+    const baseBranch = 'main';
 
-    beforeAll(async () => {
-        await createTestProject(PROJECT_DIR, {
-            withGit: true,
-            withNpm: false,
-            withGitHub: false,
-        })
-        git = simpleGit(PROJECT_DIR)
+    beforeEach(async () => {
+        await cleanupTestProject(E2E_DIR);
+        await createTestProject(PROJECT_DIR, { withGit: true });
 
-        // Set up 'main' branch
-        await git.checkoutLocalBranch('main')
-        fs.writeFileSync(join(PROJECT_DIR, 'main.txt'), 'Main branch content\n')
-        await git.add('.')
-        await git.commit('Add main content')
+        // Remote setup
+        await fs.promises.mkdir(REMOTE_DIR, { recursive: true });
+        simpleGit().cwd(REMOTE_DIR).init(true, ['--bare']);
 
-        // Set up 'feature' branch
-        await git.checkoutLocalBranch('feature')
-        fs.writeFileSync(join(PROJECT_DIR, 'feature.txt'), 'Feature branch content\n')
-        await git.add('.')
-        await git.commit('Add feature content')
+        git = simpleGit(PROJECT_DIR);
+        await git.addRemote('origin', REMOTE_DIR);
 
-        // Add more commits to 'main' after the 'feature' branch was created
-        await git.checkout('main')
-        fs.appendFileSync(join(PROJECT_DIR, 'main.txt'), 'More main branch content\n')
-        await git.add('.')
-        await git.commit('Update main content')
-    })
+        // Initialize with a commit on main
+        await git.checkoutLocalBranch('main');
+        fs.writeFileSync(join(PROJECT_DIR, 'file.txt'), 'Initial content');
+        await git.add('.');
+        await git.commit('Initial commit on main');
+        await git.push(['-u', 'origin', 'main']);
+    });
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR)
-    })
+        await cleanupTestProject(E2E_DIR);
+    });
 
-    test('Rebase a feature branch onto main', async () => {
-        // Ensure we're on the feature branch before rebasing
-        await git.checkout('feature')
+    test('Rebase a local branch onto the current branch', async () => {
+        const branchToRebase = 'feature-branch';
 
-        // Rebase 'feature' onto 'main'
-        execSync(`grm branch --rebase main`, {
-            cwd: PROJECT_DIR,
-        })
+        // Create and checkout a new branch, add commit
+        await git.checkoutLocalBranch(branchToRebase);
+        fs.writeFileSync(join(PROJECT_DIR, 'feature.txt'), 'Feature branch content');
+        await git.add('.');
+        await git.commit('Commit on feature branch');
 
-        // Check if we're on the feature after rebase - just a check point
-        const currentBranch = await git.revparse(['--abbrev-ref', 'HEAD'])
-        expect(currentBranch.trim()).toBe('feature')
+        // Switch back to main and make another commit
+        await git.checkout(baseBranch);
+        fs.writeFileSync(join(PROJECT_DIR, 'file.txt'), 'Updated Content on Main');
+        await git.add('.');
+        await git.commit('Update commit on main');
 
-        // Verify the current branch has all main branch changes
-        const log = await git.log()
-        const hasUpdatedMainContent = log.all.some(entry => entry.message.includes('Update main content'))
+        // Rebase feature branch onto main
+        execSync(`grm branch rebase ${branchToRebase}`, { cwd: PROJECT_DIR });
 
-        expect(hasUpdatedMainContent).toBe(true)
+        // Verify the rebase
+        const log = await git.log();
+        expect(log.all[0]?.message).toBe('Update commit on main');
+        expect(log.all[1]?.message).toBe('Commit on feature branch');
 
-        // Check if 'feature.txt' exists, ensuring feature branch content remains intact
-        const featureFileExists = fs.existsSync(join(PROJECT_DIR, 'feature.txt'))
-        expect(featureFileExists).toBe(true)
-    })
-})
+    });
+});

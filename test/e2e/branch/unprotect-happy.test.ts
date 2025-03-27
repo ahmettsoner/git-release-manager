@@ -1,6 +1,5 @@
 import { execSync } from 'child_process'
 import { join } from 'path'
-import fs from 'fs'
 import simpleGit, { SimpleGit } from 'simple-git'
 import { cleanupTestProject, createTestProject } from '../projectSetup'
 
@@ -20,9 +19,6 @@ describe('E2E: Branch unprotect operations', () => {
         // Set up initial branches
         await git.checkoutLocalBranch('main')
         await git.commit('Initial commit on main', ['--allow-empty'])
-
-        await git.checkoutLocalBranch('develop')
-        await git.commit('Initial commit on develop', ['--allow-empty'])
     })
 
     afterAll(async () => {
@@ -32,13 +28,18 @@ describe('E2E: Branch unprotect operations', () => {
     test('Unprotect a specific branch', async () => {
         const branchToUnprotect = 'develop'
 
+        await git.checkoutLocalBranch(branchToUnprotect)
+        await git.commit(`Initial commit on ${branchToUnprotect}`, ['--allow-empty'])
+
+        await git.checkout("main")
+
         // Initially protect the branch to ensure it can be unprotected
-        execSync(`grm branch --protect ${branchToUnprotect}`, {
+        execSync(`grm branch protect ${branchToUnprotect}`, {
             cwd: PROJECT_DIR,
         })
 
         // Use the CLI command to unprotect the branch
-        execSync(`grm branch --unprotect ${branchToUnprotect}`, {
+        execSync(`grm branch unprotect ${branchToUnprotect}`, {
             cwd: PROJECT_DIR,
         })
 
@@ -51,16 +52,18 @@ describe('E2E: Branch unprotect operations', () => {
     })
 
     test('Unprotect current branch', async () => {
-        const branchToUnprotect = 'develop'
-        await git.checkout(branchToUnprotect)
+        const branchToUnprotect = 'develop2'
+
+        await git.checkoutLocalBranch(branchToUnprotect)
+        await git.commit(`Initial commit on ${branchToUnprotect}`, ['--allow-empty'])
 
         // Initially protect the branch to ensure it can be unprotected
-        execSync(`grm branch --protect`, {
+        execSync(`grm branch protect`, {
             cwd: PROJECT_DIR,
         })
 
         // Use the CLI command to unprotect the current branch without specifying it
-        execSync(`grm branch --unprotect`, {
+        execSync(`grm branch unprotect`, {
             cwd: PROJECT_DIR,
         })
 

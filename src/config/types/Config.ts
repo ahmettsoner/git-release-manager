@@ -6,6 +6,7 @@ import { LinkType } from './LinkType'
 import { MentionType } from './MentionType'
 import { NoteType } from './NoteType'
 import { Options } from './Options'
+import { Repository } from './Repository'
 
 export interface Config {
     appName: string
@@ -27,6 +28,7 @@ export interface Config {
     helpers: any
     template: string
     branchStrategies: Record<string, BranchConfig>;
+    repository: Repository
 }
 
 export type CommitTypeNames = Config['commitTypes'][number]['type']

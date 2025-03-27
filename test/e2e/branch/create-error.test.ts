@@ -1,6 +1,5 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
-import fs from 'fs';
 import simpleGit, { SimpleGit } from 'simple-git';
 import { cleanupTestProject, createTestProject } from '../projectSetup';
 

@@ -29,7 +29,7 @@ describe('E2E: Branch list operations', () => {
 
     test('List all branches', async () => {
         // List branches using the CLI command
-        const listOutput = execSync(`grm branch --list`, { cwd: PROJECT_DIR, encoding: 'utf8' })
+        const listOutput = execSync(`grm branch list --remote de`, { cwd: PROJECT_DIR, encoding: 'utf8' })
 
         // Retrieve branches directly using simple-git for verification
         const branches = await git.branchLocal()

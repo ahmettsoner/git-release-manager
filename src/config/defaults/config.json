@@ -1,5 +1,5 @@
 {
-    "appName": "Git Release Manager",
+    "appName": "My App",
     "output": "stdout",
     "tag": {
         "format": "^v(\\d+)\\.(\\d+)\\.(\\d+)(?:-([a-zA-Z0-9]+)\\.(\\d+))?$"
@@ -247,5 +247,14 @@
             "deleteAfterMerge": true,
             "tagPrefix": "hotfix-"
         }
+    },
+    "repository":{
+        "remote":{
+            "default": "origin"
+        }
+    },
+    "app":{
+        "OS": [],
+        "ARCH": []
     }
 }

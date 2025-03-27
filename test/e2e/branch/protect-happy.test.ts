@@ -20,9 +20,6 @@ describe('E2E: Branch protect operations', () => {
         // Set up initial branches
         await git.checkoutLocalBranch('main')
         await git.commit('Initial commit on main', ['--allow-empty'])
-
-        await git.checkoutLocalBranch('develop')
-        await git.commit('Initial commit on develop', ['--allow-empty'])
     })
 
     afterAll(async () => {
@@ -31,8 +28,13 @@ describe('E2E: Branch protect operations', () => {
     test('Protect a branch', async () => {
         const branchToProtect = 'develop'
 
+        await git.checkoutLocalBranch(branchToProtect)
+        await git.commit(`Initial commit on ${branchToProtect}`, ['--allow-empty'])
+
+        await git.checkout("main")
+
         // Use the CLI command to protect the branch
-        execSync(`grm branch --protect ${branchToProtect}`, {
+        execSync(`grm branch protect ${branchToProtect}`, {
             cwd: PROJECT_DIR,
         })
 
@@ -51,11 +53,12 @@ describe('E2E: Branch protect operations', () => {
     })
 
     test('Protect current branch', async () => {
-        const branchToProtect = 'develop'
+        const branchToProtect = 'develop2'
 
-        await git.checkout('develop')
+        await git.checkoutLocalBranch(branchToProtect)
+        await git.commit(`Initial commit on ${branchToProtect}`, ['--allow-empty'])
 
-        execSync(`grm branch --protect`, {
+        execSync(`grm branch protect`, {
             cwd: PROJECT_DIR,
         })
 

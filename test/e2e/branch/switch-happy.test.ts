@@ -10,16 +10,18 @@ describe('E2E: Branch switch operations', () => {
     let git: SimpleGit
 
     beforeAll(async () => {
-        await createTestProject(PROJECT_DIR, {
-            withGit: true,
-            withNpm: false,
-            withGitHub: false,
-        })
+        await createTestProject(PROJECT_DIR, { withGit: true })
         git = simpleGit(PROJECT_DIR)
 
-        // Create branches for switching
+        // Create an initial commit and two branches for switching
+        fs.writeFileSync(join(PROJECT_DIR, 'initial.txt'), 'Initial content')
+        await git.add('.')
+        await git.commit('Initial commit')
         await git.checkoutLocalBranch('feature-branch')
-        await git.checkoutLocalBranch('main') // Make sure to return to 'main' or 'master'
+        fs.writeFileSync(join(PROJECT_DIR, 'feature.txt'), 'Feature content')
+        await git.add('.')
+        await git.commit('Feature branch commit')
+        await git.checkoutLocalBranch('main') // Switch back to main to test the switch later
     })
 
     afterAll(async () => {
@@ -27,13 +29,15 @@ describe('E2E: Branch switch operations', () => {
     })
 
     test('Switch to an existing branch', async () => {
-        const branchToSwitch = 'feature-branch'
+        // Ensure we're starting from 'main'
+        let currentBranch = await git.revparse(['--abbrev-ref', 'HEAD'])
+        expect(currentBranch).toBe('main')
 
-        // Switch to the feature branch using the CLI command
-        execSync(`grm branch --switch ${branchToSwitch}`, { cwd: PROJECT_DIR })
+        // Execute the switch command to move to the 'feature-branch'
+        execSync(`grm branch switch feature-branch`, { cwd: PROJECT_DIR })
 
-        // Verify the current branch is now the feature branch
-        const currentBranch = await git.revparse(['--abbrev-ref', 'HEAD'])
-        expect(currentBranch.trim()).toBe(branchToSwitch)
+        // Verify the current branch is now 'feature-branch'
+        currentBranch = await git.revparse(['--abbrev-ref', 'HEAD'])
+        expect(currentBranch).toBe('feature-branch')
     })
 })

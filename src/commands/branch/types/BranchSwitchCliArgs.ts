@@ -1,5 +1,5 @@
-import { CliArgs } from "../../types/CliArgs";
+import { CliArgs } from '../../types/CliArgs'
 
 export interface BranchSwitchCliArgs extends CliArgs {
-    name: string,
+    name: string
 }

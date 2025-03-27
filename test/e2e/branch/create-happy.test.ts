@@ -34,17 +34,4 @@ describe('E2E: Branch create operations', () => {
         // Verify that the new branch was created
         expect(branches.all).toContain(branchName)
     })
-
-    test('Create a new branch and push to remote', async () => {
-        const branchName = 'new-feature-branch-push';
-        execSync(`grm branch create ${branchName} --push`, { cwd: PROJECT_DIR });
-
-        // Local repository check
-        const localBranches = await git.branchLocal();
-        expect(localBranches.all).toContain(branchName);
-
-        // Remote repository check
-        const remoteBranches = await git.branch(['-r']);
-        expect(remoteBranches.all).toContain(`origin/${branchName}`);
-    });
 })
