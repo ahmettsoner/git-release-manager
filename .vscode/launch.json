@@ -7,9 +7,13 @@
             "name": "Changelog",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
-            "args": ["changelog"],
+            "args": [
+                "changelog",
+                "generate"
+            ],
             "preLaunchTask": "tsc: build & copy",
-            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "cwd": "D:\\AS\\W\\PRS\\Opensource\\Pars\\pars"
         },
         {
             "type": "node",
@@ -17,7 +21,12 @@
             "name": "Branch",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
-            "args": ["branch"],
+            "args": [
+                "branch",
+                "create",
+                "release",
+                "new-api2",
+            ],
             "preLaunchTask": "tsc: build & copy",
             "outFiles": ["${workspaceFolder}/dist/**/*.js"]
         },

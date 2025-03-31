@@ -1,5 +1,4 @@
 import { Option, Argument, Command } from 'commander'
-import { CliArgs } from '../types/CliArgs'
 import { BranchController } from '../../modules/branch/BranchController'
 import { BranchCreateCliArgs } from './types/BranchCreateCliArgs'
 import { BranchDeleteCliArgs } from './types/BranchDeleteCliArgs'
@@ -9,14 +8,11 @@ import { BranchProtectCliArgs } from './types/BranchProtectCliArgs'
 import { BranchUnProtectCliArgs } from './types/BranchUnProtectCliArgs'
 import { BranchRebaseCliArgs } from './types/BranchRebaseCliArgs'
 import { BranchListCliArgs } from './types/BranchListCliArgs'
-import { readConfig } from '../../config/configManager'
-import { BranchConfig } from '../../config/types/BranchConfig'
 
 const branchTypes = [
     { name: 'release', prefix: 'release/' },
     { name: 'hotfix', prefix: 'hotfix/' },
     { name: 'feature', prefix: 'feature/' },
-    { name: 'custom', prefix: 'custom/' },
 ]
 
 export async function createBranchCommand(program: Command): Promise<Command> {
@@ -24,33 +20,36 @@ export async function createBranchCommand(program: Command): Promise<Command> {
         return new Command(type)
             .description(`Create and manage ${type} branches`)
             .argument('<name>', `Name of the ${type} branch`)
-            .action(async commandOptions => {
-                const options = { ...program.opts(), ...commandOptions }
-                if (options[type]) {
-                    options.branchName = `${prefix}${options[type]}`
-                    console.log(`Creating ${type} branch: ${options.branchName}`)
-
-                    const controller = new BranchController()
-                    await controller.handleCreateCommand(options)
-                }
-            })
-    }
-
-    const programBranch = program.command('branch').alias('b').description('Manage different types of git branches')
-    programBranch.addCommand(
-        new Command()
-            .command('create')
-            .alias('c')
-            .description('Create a new branch')
-            .addArgument(new Argument('<name>', 'branch to create'))
             .action(async (args: string, commandOptions: BranchCreateCliArgs) => {
                 const options = { ...program.opts(), ...commandOptions }
-                options.name = args
+                const branchName = args
+
+                options.name = `${prefix}${branchName}`
+                console.log(`Creating ${type} branch: ${options.name}`)
 
                 const controller = new BranchController()
                 await controller.handleCreateCommand(options)
             })
-    )
+    }
+
+    const programBranch = program.command('branch').alias('b').description('Manage different types of git branches')
+    const programBranchCreate = new Command()
+        .command('create')
+        .alias('c')
+        .description('Create a new branch')
+        .addArgument(new Argument('<name>', 'branch to create'))
+        .action(async (args: string, commandOptions: BranchCreateCliArgs) => {
+            const options = { ...program.opts(), ...commandOptions }
+            options.name = args
+
+            const controller = new BranchController()
+            await controller.handleCreateCommand(options)
+        })
+
+    branchTypes.forEach(({ name, prefix }) => {
+        programBranchCreate.addCommand(createBranchSubcommand(name, prefix))
+    })
+    programBranch.addCommand(programBranchCreate)
     programBranch.addCommand(
         new Command()
             .command('delete')

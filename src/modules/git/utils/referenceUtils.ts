@@ -92,8 +92,16 @@ export async function resolveReference(value: string | null, isStart?: boolean):
     if (!reference) {
         throw new Error('Commit ID is null')
     }
-    const result = await git.raw(['show', '-s', '--format=%ci', reference])
-    const date = formatISO8601(result.trim())
+    const rawResult = await git.raw(['show', '-s', '--format=%ci', reference])
+    
+    const dateRegex = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}/;
+    const match = rawResult.match(dateRegex);
+
+    if (!match) {
+        throw new Error('Could not extract date from git show output');
+    }
+
+    const date = formatISO8601(match[0].trim())
 
     return {
         name: reference,

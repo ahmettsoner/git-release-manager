@@ -8,6 +8,7 @@ import { createCommitCommand } from "./commands/commit/command";
 import { createChangelogCommand } from "./commands/changelog/command";
 import { createBranchCommand } from "./commands/branch/command";
 import { createVersionCommand } from "./commands/version/command";
+import { createFlowCommand } from "./commands/flow/command";
 
 const packageJson: PackageJson = JSON.parse(
   readFileSync(join(__dirname, "../package.json"), "utf8")
@@ -37,6 +38,7 @@ program
   createChangelogCommand(program)
   createBranchCommand(program)
   createVersionCommand(program)
+  createFlowCommand(program)
 
 
 program.action(() => {
