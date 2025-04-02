@@ -44,10 +44,7 @@ export function createVersionCommand(program: Command) :Command {
         .option("-m, --major", "Increment the major version number")
         .option("-i, --minor", "Increment the minor version number")
         .option("-p, --patch", "Increment the patch version number")
-        .option(
-        "-c, --channel <channel>",
-        "Specify prerelease channel (e.g., alpha, beta)"
-        )
+        .option('-c, --channel <channel>', "Specify prerelease channel (e.g., alpha, beta)")
         .option("--prefix <prefix>", "Add a prefix to the version number")
         .option("--prerelease <identifier>", "Add a prerelease identifier")
         .option("--build <identifier>", "Add build metadata")
@@ -74,6 +71,7 @@ export function createVersionCommand(program: Command) :Command {
         )
         .action(async (args: string, commandOptions: VersionSetCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
+        options.version = args;
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)

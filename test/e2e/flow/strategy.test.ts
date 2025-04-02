@@ -5,7 +5,7 @@ import simpleGit, { SimpleGit } from 'simple-git'
 import { cleanupTestProject, createEmptyTestWorkspace } from '../projectSetup'
 
 describe('E2E: Flow Strategy', () => {
-    const E2E_DIR = join(__dirname, '../../../../temp/test/e2e/flow/strategy')
+    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/flow/strategy')
     const PROJECT_DIR = join(E2E_DIR, `full-sample`)
     let git: SimpleGit
 
@@ -27,7 +27,7 @@ describe('E2E: Flow Strategy', () => {
         await setupTest(PROJECT_DIR)
 
 
-        execSync('git checkout -b dev', cmdOptions).trim()
+        execSync(`grm branch create dev`, cmdOptions).trim()
 
 
         // Iteration 1
@@ -116,18 +116,17 @@ describe('E2E: Flow Strategy', () => {
     }
 
     const developFeature = (featureName: string, expectedVersion: string | null = null) => {
-        execSync(`git checkout -b feature/${featureName}`, cmdOptions).trim()
+        execSync(`grm branch create feature ${featureName}`, cmdOptions).trim()
         fs.writeFileSync(join(PROJECT_DIR, `${featureName}-readme.md`), `${featureName} implementation`)
-        execSync('git add .', cmdOptions).trim()
-        execSync(`git commit -m "feat: ${featureName}"`, cmdOptions).trim()
-        execSync('git checkout dev', cmdOptions).trim()
-        execSync(`git merge feature/${featureName} --no-ff`, cmdOptions).trim()
-        execSync(`git branch -d feature/${featureName}`, cmdOptions).trim()
+        execSync(`grm commit create --message "${featureName}" --type feat --stage all`, cmdOptions).trim()
+        execSync('grm branch switch dev', cmdOptions).trim()
+        execSync(`grm branch merge feature ${featureName}`, cmdOptions).trim()
+        execSync(`grm branch delete feature ${featureName}`, cmdOptions).trim()
 
         if(expectedVersion){
             const firstDevReleaseVersionOutput = execSync('grm flow phase dev --next', cmdOptions).trim()
             expect(firstDevReleaseVersionOutput).toEqual(expectedVersion)
-            execSync(`git tag -a ${firstDevReleaseVersionOutput} -m "Dev release ${firstDevReleaseVersionOutput}"`, cmdOptions).trim()
+            execSync(`grm version set ${firstDevReleaseVersionOutput} --note "Dev release ${firstDevReleaseVersionOutput}"`, cmdOptions).trim()
         }
     }
     const fixBugQAPhase = (fixname: string, baseVersion: string, channel: string | null = null, expectedVersion: string | null = null) => {
@@ -135,23 +134,22 @@ describe('E2E: Flow Strategy', () => {
         if(channel){
             channelBaseVersion += `-${channel}`
         }
-        execSync(`git checkout release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git checkout -b hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch create hotfix ${fixname}`, cmdOptions).trim()
         fs.writeFileSync(join(PROJECT_DIR, `readme-${fixname}.md`), `${fixname} added`)
-        execSync('git add .', cmdOptions).trim()
-        execSync(`git commit -m "doc: ${fixname}"`, cmdOptions).trim()
-        execSync(`git checkout release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync('git checkout dev', cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync(`git checkout release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git branch -d hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm commit create --message "${fixname}" --type doc --stage all`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync('grm branch switch dev', cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch delete hotfix ${fixname}`, cmdOptions).trim()
 
         if(expectedVersion){
             const newBuildVersion = execSync(`grm flow phase qa ${channel} --next`, cmdOptions).trim()
             expect(newBuildVersion).toEqual(expectedVersion)
-            execSync(`git tag -a ${newBuildVersion} -m "${channel} release ${newBuildVersion}"`, cmdOptions).trim()
-            execSync('git checkout dev', cmdOptions).trim()
+            execSync(`grm version set ${newBuildVersion} --note "${channel} release ${newBuildVersion}"`, cmdOptions).trim()
+            execSync('grm branch switch dev', cmdOptions).trim()
         }
     }
     const fixBugStagePhase = (fixname: string, baseVersion: string, channel: string | null = null, expectedVersion: string | null = null) => {
@@ -159,67 +157,66 @@ describe('E2E: Flow Strategy', () => {
         if(channel){
             channelBaseVersion += `-${channel}`
         }
-        execSync(`git checkout release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git checkout -b hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch create hotfix ${fixname}`, cmdOptions).trim()
         fs.writeFileSync(join(PROJECT_DIR, `readme-${fixname}.md`), `${fixname} added`)
-        execSync('git add .', cmdOptions).trim()
-        execSync(`git commit -m "doc: ${fixname}"`, cmdOptions).trim()
-        execSync(`git checkout release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync('git checkout dev', cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync(`git checkout release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git branch -d hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm commit create --message "${fixname}" --type doc --stage all`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync('grm branch switch dev', cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch delete hotfix ${fixname}`, cmdOptions).trim()
 
         if(expectedVersion){
-            const newBuildVersion = execSync(`grm flow phase stage ${channel} --next`, cmdOptions).trim()
+            const newBuildVersion = execSync(`grm flow phase qa ${channel} --next`, cmdOptions).trim()
             expect(newBuildVersion).toEqual(expectedVersion)
-            execSync(`git tag -a ${newBuildVersion} -m "${channel} release ${newBuildVersion}"`, cmdOptions).trim()
-            execSync('git checkout dev', cmdOptions).trim()
+            execSync(`grm version set ${newBuildVersion} --note "${channel} release ${newBuildVersion}"`, cmdOptions).trim()
+            execSync('grm branch switch dev', cmdOptions).trim()
         }
     }
     const fixBugStageProd = (fixname: string, baseVersion: string, expectedVersion: string | null = null) => {
         let channelBaseVersion = baseVersion;
+        const channel = "stabil"
 
         const newBuildVersion = execSync(`grm flow phase prod --next-fix`, cmdOptions).trim()
-        execSync(`git checkout -b release/${newBuildVersion} release/${channelBaseVersion}`, cmdOptions).trim()
-        execSync(`git checkout -b hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm branch create release ${newBuildVersion} --based-on "release/${channelBaseVersion}"`, cmdOptions).trim()
+        execSync(`grm branch create hotfix ${fixname}`, cmdOptions).trim()
         fs.writeFileSync(join(PROJECT_DIR, `readme-${fixname}.md`), `${fixname} added`)
-        execSync('git add .', cmdOptions).trim()
-        execSync(`git commit -m "doc: ${fixname}"`, cmdOptions).trim()
-        execSync(`git checkout release/${newBuildVersion}`, cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync('git checkout dev', cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync(`git checkout release/${newBuildVersion}`, cmdOptions).trim()
-        execSync(`git branch -d hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm commit create --message "${fixname}" --type doc --stage all`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync('grm branch switch dev', cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync(`grm branch switch release ${channelBaseVersion}`, cmdOptions).trim()
+        execSync(`grm branch delete hotfix ${fixname}`, cmdOptions).trim()
 
         if(expectedVersion){
             expect(newBuildVersion).toEqual(expectedVersion)
-            execSync(`git tag -a ${newBuildVersion} -m "stabil release ${newBuildVersion}"`, cmdOptions).trim()
-            execSync('git checkout dev', cmdOptions).trim()
+            execSync(`grm version set ${newBuildVersion} --note "${channel} release ${newBuildVersion}"`, cmdOptions).trim()
+            execSync('grm branch switch dev', cmdOptions).trim()
         }
     }
     const fixBugPostProd = (fixname: string, expectedVersion: string | null = null) => {
+        const channel = "stabil"
 
         let newBuildVersion = execSync(`grm flow phase prod --previous`, cmdOptions).trim()
-        execSync(`git checkout main`, cmdOptions).trim()
-        execSync(`git checkout -b hot-fix/${fixname}`, cmdOptions).trim()
+        execSync('grm branch switch main', cmdOptions).trim()
+        execSync(`grm branch create hotfix ${fixname}`, cmdOptions).trim()
         fs.writeFileSync(join(PROJECT_DIR, `readme-${fixname}.md`), `${fixname} added`)
-        execSync('git add .', cmdOptions).trim()
-        execSync(`git commit -m "doc: ${fixname}"`, cmdOptions).trim()
-        execSync(`git checkout main`, cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync('git checkout dev', cmdOptions).trim()
-        execSync(`git merge hot-fix/${fixname} --no-ff`, cmdOptions).trim()
-        execSync(`git checkout main`, cmdOptions).trim()
-        execSync(`git branch -d hot-fix/${fixname}`, cmdOptions).trim()
+        execSync(`grm commit create --message "${fixname}" --type doc --stage all`, cmdOptions).trim()
+        execSync('grm branch switch main', cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync('grm branch switch dev', cmdOptions).trim()
+        execSync(`grm branch merge hotfix ${fixname}`, cmdOptions).trim()
+        execSync('grm branch switch main', cmdOptions).trim()
+        execSync(`grm branch delete hotfix ${fixname}`, cmdOptions).trim()
 
         if(expectedVersion){
             newBuildVersion = execSync(`grm flow phase prod --previous-fix`, cmdOptions).trim()
             expect(newBuildVersion).toEqual(expectedVersion)
-            execSync(`git tag -a ${newBuildVersion} -m "stabil release ${newBuildVersion}"`, cmdOptions).trim()
-            execSync('git checkout dev', cmdOptions).trim()
+            execSync(`grm version set ${newBuildVersion} --note "${channel} release ${newBuildVersion}"`, cmdOptions).trim()
+            execSync('grm branch switch dev', cmdOptions).trim()
         }
     }
 

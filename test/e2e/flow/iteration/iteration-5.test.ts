@@ -4,6 +4,7 @@ import simpleGit, { SimpleGit } from 'simple-git'
 import { cleanupTestProject, createEmptyTestWorkspace } from '../../projectSetup'
 
 // With first test release (alpha)
+
 describe('E2E: Iteration Scenario Iteration 3', () => {
     const E2E_DIR = join(__dirname, '../../../../temp/test/e2e/scenario/iteration-5')
     let git: SimpleGit

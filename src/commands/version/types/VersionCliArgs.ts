@@ -2,6 +2,7 @@ import { CliArgs } from "../../types/CliArgs";
 
 export interface VersionCliArgs extends CliArgs {
     init?: string
+    version?: string
     reset?: boolean
     major?: boolean
     minor?: boolean

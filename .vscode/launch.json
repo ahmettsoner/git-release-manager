@@ -18,6 +18,24 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Flow",
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/src/index.ts",
+            "args": [
+                "branch",
+                "create",
+                "release",
+                "v1.0.7",
+                "--based-on",
+                "main"
+            ],
+            "preLaunchTask": "tsc: build & copy",
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "cwd": "D:\\AS\\W\\PRS\\Opensource\\Pars\\pars"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Branch",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",

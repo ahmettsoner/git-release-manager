@@ -20,6 +20,8 @@ export async function createBranchCommand(program: Command): Promise<Command> {
         return new Command(type)
             .description(`Create and manage ${type} branches`)
             .argument('<name>', `Name of the ${type} branch`)
+            .addOption(new Option('--based-on <branch>', 'Base branch'))
+            .addOption(new Option('--no-switch', 'Don\'t switch to new branch'))
             .action(async (args: string, commandOptions: BranchCreateCliArgs) => {
                 const options = { ...program.opts(), ...commandOptions }
                 const branchName = args
@@ -31,6 +33,53 @@ export async function createBranchCommand(program: Command): Promise<Command> {
                 await controller.handleCreateCommand(options)
             })
     }
+    const deleteBranchSubcommand = (type: string, prefix: string) => {
+        return new Command(type)
+            .description(`Delete a ${type} branch`)
+            .argument('<name>', `Name of the ${type} branch to delete`)
+            .action(async (args: string, commandOptions: BranchDeleteCliArgs) => {
+                const options = { ...program.opts(), ...commandOptions };
+                const branchName = `${prefix}${args}`;
+                options.name = branchName;
+
+                console.log(`Deleting ${type} branch: ${branchName}`);
+
+                const controller = new BranchController();
+                await controller.handleDeleteCommand(options);
+            });
+    };
+
+    const mergeBranchSubcommand = (type: string, prefix: string) => {
+        return new Command(type)
+            .description(`Merge a ${type} branch into the current branch`)
+            .argument('<name>', `Name of the ${type} branch to merge`)
+            .addOption(new Option('--squash', 'Squash commits into a single commit'))
+            .action(async (args: string, commandOptions: BranchMergeCliArgs) => {
+                const options = { ...program.opts(), ...commandOptions };
+                const branchName = `${prefix}${args}`;
+                options.name = branchName;
+
+                console.log(`Merging ${type} branch: ${branchName} into the current branch.`);
+
+                const controller = new BranchController();
+                await controller.handleMergeCommand(options);
+            });
+    };
+    const switchBranchSubcommand = (type: string, prefix: string) => {
+        return new Command(type)
+            .description(`Switch to a ${type} branch`)
+            .argument('<name>', `Name of the ${type} branch to switch to`)
+            .action(async (args: string, commandOptions: BranchSwitchCliArgs) => {
+                const options = { ...program.opts(), ...commandOptions };
+                const branchName = `${prefix}${args}`;
+                options.name = branchName;
+
+                console.log(`Switching to ${type} branch: ${branchName}`);
+
+                const controller = new BranchController();
+                await controller.handleSwitchCommand(options);
+            });
+    };
 
     const programBranch = program.command('branch').alias('b').description('Manage different types of git branches')
     const programBranchCreate = new Command()
@@ -38,9 +87,13 @@ export async function createBranchCommand(program: Command): Promise<Command> {
         .alias('c')
         .description('Create a new branch')
         .addArgument(new Argument('<name>', 'branch to create'))
+        .addOption(new Option('--base-branch <branch>', 'Base branch'))
+        .addOption(new Option('--no-switch', 'Don\'t switch to new branch'))
         .action(async (args: string, commandOptions: BranchCreateCliArgs) => {
             const options = { ...program.opts(), ...commandOptions }
             options.name = args
+
+            console.log(`Creating branch: ${options.name}`)
 
             const controller = new BranchController()
             await controller.handleCreateCommand(options)
@@ -50,35 +103,46 @@ export async function createBranchCommand(program: Command): Promise<Command> {
         programBranchCreate.addCommand(createBranchSubcommand(name, prefix))
     })
     programBranch.addCommand(programBranchCreate)
-    programBranch.addCommand(
-        new Command()
-            .command('delete')
-            .alias('d')
-            .description('Delete a given branch')
-            .argument('<name>', 'Name of the branch to delete')
-            .action(async (args: string, commandOptions: BranchDeleteCliArgs) => {
-                const options = { ...program.opts(), ...commandOptions }
-                options.name = args
 
-                const controller = new BranchController()
-                await controller.handleDeleteCommand(options)
-            })
-    )
-    programBranch.addCommand(
-        new Command()
-            .command('merge')
-            .alias('m')
-            .description('Merge a branch into the current branch')
-            .argument('<name>', 'Name of the branch to be merged')
-            .addOption(new Option('--squash', 'Squash commits into a single commit'))
-            .action(async (args: string, commandOptions: BranchMergeCliArgs) => {
-                const options = { ...program.opts(), ...commandOptions }
-                options.name = args
+    const programBranchDelete =  new Command()
+    .command('delete')
+    .alias('d')
+    .description('Delete a given branch')
+    .argument('<name>', 'Name of the branch to delete')
+    .action(async (args: string, commandOptions: BranchDeleteCliArgs) => {
+        const options = { ...program.opts(), ...commandOptions }
+        options.name = args
 
-                const controller = new BranchController()
-                await controller.handleMergeCommand(options)
-            })
-    )
+        const controller = new BranchController()
+        await controller.handleDeleteCommand(options)
+    })
+    
+
+    branchTypes.forEach(({ name, prefix }) => {
+        programBranchDelete.addCommand(deleteBranchSubcommand(name, prefix));
+    });
+    programBranch.addCommand(programBranchDelete)
+
+    const programBranchMerge =         new Command()
+    .command('merge')
+    .alias('m')
+    .description('Merge a branch into the current branch')
+    .argument('<name>', 'Name of the branch to be merged')
+    .addOption(new Option('--squash', 'Squash commits into a single commit'))
+    .action(async (args: string, commandOptions: BranchMergeCliArgs) => {
+        const options = { ...program.opts(), ...commandOptions }
+        options.name = args
+
+        const controller = new BranchController()
+        await controller.handleMergeCommand(options)
+    });
+
+    branchTypes.forEach(({ name, prefix }) => {
+        programBranchMerge.addCommand(mergeBranchSubcommand(name, prefix));
+    });
+    programBranch.addCommand(programBranchMerge)
+    
+    
     programBranch.addCommand(
         new Command()
             .command('rebase')
@@ -93,20 +157,26 @@ export async function createBranchCommand(program: Command): Promise<Command> {
                 await controller.handleRebaseCommand(options)
             })
     )
-    programBranch.addCommand(
-        new Command()
-            .command('switch')
-            .alias('s')
-            .description('Switch to branch')
-            .addArgument(new Argument('<name>', 'branch to switch'))
-            .action(async (args: string, commandOptions: BranchSwitchCliArgs) => {
-                const options = { ...program.opts(), ...commandOptions }
-                options.name = args
 
-                const controller = new BranchController()
-                await controller.handleSwitchCommand(options)
-            })
-    )
+    const programBranchSwitch = new Command()
+    .command('switch')
+    .alias('s')
+    .description('Switch to branch')
+    .addArgument(new Argument('<name>', 'branch to switch'))
+    .action(async (args: string, commandOptions: BranchSwitchCliArgs) => {
+        const options = { ...program.opts(), ...commandOptions }
+        options.name = args
+
+        const controller = new BranchController()
+        await controller.handleSwitchCommand(options)
+    })
+    
+    branchTypes.forEach(({ name, prefix }) => {
+        programBranchSwitch.addCommand(switchBranchSubcommand(name, prefix));
+    });
+    
+    programBranch.addCommand(programBranchSwitch)
+
     programBranch.addCommand(
         new Command()
             .command('protect')

@@ -5,7 +5,7 @@ import { cleanupTestProject, createEmptyTestWorkspace } from '../../projectSetup
 
 // Without any test release (alpha)
 describe('E2E: Iteration Scenario Iteration 1', () => {
-    const E2E_DIR = join(__dirname, '../../../temp/test/e2e/scenario/iteration-1')
+    const E2E_DIR = join(__dirname, '../../../../temp/test/e2e/scenario/iteration-1')
     let git: SimpleGit
 
     const setupTest = async(project_dir:string) => {
@@ -30,7 +30,7 @@ describe('E2E: Iteration Scenario Iteration 1', () => {
 
         const expectedVersion = 'v1.0.0-dev.1'
 
-        const versionOutput = execSync('grm flow phase dev', {
+        const versionOutput = execSync('vereasy phase dev', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -46,7 +46,7 @@ describe('E2E: Iteration Scenario Iteration 1', () => {
 
         const expectedVersion = 'v1.0.0-dev.2'
 
-        const versionOutput = execSync('grm flow phase dev', {
+        const versionOutput = execSync('vereasy phase dev', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -63,7 +63,7 @@ describe('E2E: Iteration Scenario Iteration 1', () => {
 
         const expectedVersion = 'v1.0.0-dev.3'
 
-        const versionOutput = execSync('grm flow phase dev', {
+        const versionOutput = execSync('vereasy phase dev', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()

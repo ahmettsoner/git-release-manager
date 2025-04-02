@@ -20,7 +20,7 @@ export class BranchController {
         try {
             // const config = await readConfig(options.config, options.environment);
             if (options.name) {
-                await this.branchManager.createBranch(options.name)
+                await this.branchManager.createBranch(options.name,  options.basedOn, options.switch)
             } else {
                 console.log('Please specify an option for branch management.')
                 process.exit(1)

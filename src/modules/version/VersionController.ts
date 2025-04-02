@@ -39,11 +39,10 @@ export class VersionController {
 
                 return
             }
-        
-            
+
             if (options.update) {
                 // Versiyon güncelleme
-                const projectVersion = typeof options.update === 'string' ? options.update : undefined;
+                const projectVersion = typeof options.update === 'string' ? options.update : undefined
 
                 await this.projectVersionManager.updateProjectVersion(projectVersion, options.projectPath)
                 return
@@ -54,7 +53,6 @@ export class VersionController {
                 await this.gitManager.listVersions(options.list === true ? 10 : parseInt(options.list as string))
                 return
             }
-
 
             if (options.latest) {
                 await this.gitManager.showLatestVersion()
@@ -82,23 +80,22 @@ export class VersionController {
             }
 
             // Handle version creation/update
-            let newVersion = ""
-            if(options.init) {
+            let newVersion = ''
+            if (options.version) {
+                newVersion = options.version
+            } else if (options.init) {
                 newVersion = await this.gitManager.initVersion(options)
-            }else{
+            } else {
                 newVersion = await this.gitManager.generateNewVersion(options)
             }
             await this.releaseManager.createVersion(newVersion, options)
 
-
-        
             // Create git tag
             if (options.tag !== false) {
                 // Default to true if not explicitly set to false
                 await this.gitManager.createGitTag(newVersion)
                 console.log(`Created tag: ${newVersion}`)
             }
-
 
             // Push changes if requested
             if (options.push) {

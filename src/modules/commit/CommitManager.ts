@@ -10,23 +10,26 @@ export class CommitManager {
         this.git = simpleGit()
     }
 
-    async stageAll(){
+    async stageAll() {
         await this.git.add('.')
     }
-    async stageFiles(files:string[]){
+    async stageFiles(files: string[]) {
         await this.git.add(files)
     }
     async createCommit(options: CommitCreateCliArgs, config: Config): Promise<void> {
         try {
-            const commitOptions: Options = {};
-            if (options.stage == "all") {
-                await this.stageAll()
-            } else if (options.stage == 'any') {
-                commitOptions['--allow-empty'] = null;
+            const commitOptions: Options = {}
+            if (options.stage) {
+                if (options.stage == 'all') {
+                    await this.stageAll()
+                } else if (options.stage == 'any') {
+                    commitOptions['--allow-empty'] = null
+                } else {
+                    await this.stageFiles(options.stage as string[])
+                }
             } else {
-                await this.stageFiles(options.stage as string[])
+                commitOptions['--allow-empty'] = null
             }
-
 
             // Prepare commit message parts
             const commitMessage = []
@@ -41,20 +44,19 @@ export class CommitManager {
             if (options.body) {
                 commitMessage.push(`\n\n${options.body.join('\n')}`)
             }
-            
+
             if (options.breaking) {
                 commitMessage.push(`\n\nBREAKING CHANGE: ${options.breaking}`)
             }
 
             // Convert commit options to an array format:
 
-            if (options.noVerify) commitOptions['--no-verify'] = null;
-            if (options.sign) commitOptions['--sign'] = null;
+            if (options.noVerify) commitOptions['--no-verify'] = null
+            if (options.sign) commitOptions['--sign'] = null
             // if (options.amend) commitOptions['--amend'] = null;
-            
 
             // Execute commit
-            await this.git.commit(commitMessage.join(''), commitOptions);
+            await this.git.commit(commitMessage.join(''), commitOptions)
 
             // // Optionally push changes
             // if (options.push) {
@@ -68,18 +70,18 @@ export class CommitManager {
 
     async listCommits(options: CommitListCliArgs, config: Config): Promise<void> {
         try {
-            const count = typeof options.count === 'number' ? options.count : 1;
-            const log: LogResult = await this.git.log({ maxCount: count });
+            const count = typeof options.count === 'number' ? options.count : 1
+            const log: LogResult = await this.git.log({ maxCount: count })
             log.all.forEach(commit => {
-                console.log(`Commit: ${commit.hash}`);
-                console.log(`Author: ${commit.author_name} <${commit.author_email}>`);
-                console.log(`Date: ${commit.date}`);
-                console.log(`Message: ${commit.message}`);
-                console.log('---');
-            });
+                console.log(`Commit: ${commit.hash}`)
+                console.log(`Author: ${commit.author_name} <${commit.author_email}>`)
+                console.log(`Date: ${commit.date}`)
+                console.log(`Message: ${commit.message}`)
+                console.log('---')
+            })
         } catch (error) {
-            console.error('Error listing commits:', error instanceof Error ? error.message : String(error));
-            process.exit(1);
+            console.error('Error listing commits:', error instanceof Error ? error.message : String(error))
+            process.exit(1)
         }
     }
 }

@@ -11,10 +11,26 @@ export class BranchManager {
         this.gitVersionManager = new GitVersionManager()
     }
 
-    async createBranch(branchName: string): Promise<void> {
+    async createBranch(branchName: string, basedOn: string | null = null, switchToNewBranch: boolean = true): Promise<void> {
         const currentBranch = await this.getCurrentBranch()
+        const branchToCheckout = basedOn ?? currentBranch
+        
+        // Check out to the base branch if specified, otherwise stay on the current branch
+        if (basedOn && currentBranch != basedOn) {
+            await this.git.checkout(basedOn)
+            console.log(`Checked out to base branch '${basedOn}'`)
+        }
+    
+        // Create and/or check out to the new branch
         await this.git.checkoutLocalBranch(branchName)
-        console.log(`Created and switched to branch '${branchName}' from '${currentBranch}'`)
+        console.log(`Created branch '${branchName}' from '${branchToCheckout}'`)
+    
+        // Decide whether to switch to the new branch
+        if (!switchToNewBranch) {
+            // If switchToNewBranch is false, switch back to the original branch
+            await this.git.checkout(branchToCheckout)
+            console.log(`Switched back to branch '${branchToCheckout}'`)
+        }
     }
 
     async deleteBranch(branchName: string): Promise<void> {
@@ -94,7 +110,7 @@ export class BranchManager {
                 console.log(`Squashed '${branchName}' into '${currentBranch}'`)
             } else {
                 // Perform a regular merge
-                await this.git.merge([branchName])
+                await this.git.merge([branchName, '--no-ff'])
                 console.log(`Merged '${branchName}' into '${currentBranch}'`)
             }
         } catch (error) {
