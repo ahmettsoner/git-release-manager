@@ -437,7 +437,7 @@ export class FlowManager {
                     result = latestChannelTagVersion
                 }
             } else if (options.previous) {
-                result = await this.latestTagVersion(`main`)
+                result = await this.latestTagVersion('main')
             } else if (options.previousFix) {
                     const latestMainVersion = await this.latestTagVersion(`main`)
                     const incrementedVersion = semver.inc(latestMainVersion, 'patch')

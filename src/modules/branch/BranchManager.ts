@@ -27,9 +27,13 @@ export class BranchManager {
     
         // Decide whether to switch to the new branch
         if (!switchToNewBranch) {
+            let switchBackBranch = branchToCheckout
+            // if (basedOn && currentBranch != basedOn) {
+            //     switchBackBranch = currentBranch
+            // }
             // If switchToNewBranch is false, switch back to the original branch
-            await this.git.checkout(branchToCheckout)
-            console.log(`Switched back to branch '${branchToCheckout}'`)
+            await this.git.checkout(switchBackBranch)
+            console.log(`Switched back to branch '${switchBackBranch}'`)
         }
     }
 

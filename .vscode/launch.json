@@ -22,12 +22,10 @@
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/src/index.ts",
             "args": [
-                "branch",
-                "create",
-                "release",
-                "v1.0.7",
-                "--based-on",
-                "main"
+                "flow",
+                "phase",
+                "prod",
+                "--previous"
             ],
             "preLaunchTask": "tsc: build & copy",
             "outFiles": ["${workspaceFolder}/dist/**/*.js"],
