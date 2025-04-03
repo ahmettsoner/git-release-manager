@@ -1,9 +1,6 @@
 {
     "jest.pathToJest": "npm test --",
-    "jest.autoRun": {
-        "watch": false,
-        "onSave": "off"
-    },
+    "jest.runMode": "on-demand",
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"

@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { readConfig } from "../../config/configManager";
 import { CommitController } from "../../modules/commit/CommitController";
 import { CommitCreateCliArgs } from "./types/CommitCreateCliArgs";
@@ -17,22 +17,17 @@ export function createCommitCommand(program: Command) :Command {
         .command("create")
         .alias("c")
         .description("Create a new commit with staged changes")
-        .option("-m, --message <message>", "Specify the commit message")
-        .option("-b, --body <lines...>", "Add commit body text")
-        .option("-t, --type <type>", "Specify commit type (e.g., feat, fix, chore)")
-        .option(
+        .addOption(new Option('--stage <files...>', 'Files to add or "all"/"empty"').default('all'))
+        .addOption(new Option("-m, --message <message>", "Specify the commit message"))
+        .addOption(new Option("-b, --body <lines...>", "Add commit body text"))
+        .addOption(new Option("-t, --type <type>", "Specify commit type (e.g., feat, fix, chore)"))
+        .addOption(new Option(
         "-s, --scope <scope>",
         "Specify commit scope (e.g., module or component)"
-        )
-        // .option("-a, --all", "Stage all modified and deleted files for commit")
-        // .option(
-        //   "-f, --file <files...>",
-        //   "Specify individual files to stage and commit"
-        // )
-        .option('--stage <files...>', 'Files to add or "all"/"empty"', 'all')
-        .option("--dry-run", "Show what would be committed without committing")
-        .option("--no-verify", "Skip pre-commit and commit-msg hooks")
-        .option("-i, --sign", "Sign the commit with a GPG key")
+        ))
+        .addOption(new Option("--dry-run", "Show what would be committed without committing"))
+        .addOption(new Option("--no-verify", "Skip pre-commit and commit-msg hooks"))
+        .addOption(new Option("-i, --sign", "Sign the commit with a GPG key"))
         .action(async (args: string, commandOptions: CommitCreateCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
 
