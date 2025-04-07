@@ -1,0 +1,16 @@
+{
+    "jest.pathToJest": "npm test --",
+    "jest.runMode": "on-demand",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "sonarlint.connectedMode.project": {
+        "connectionId": "http-localhost-9000",
+        "projectKey": "changelog"
+    },
+    "local-history.path": ".history", // geçmiş dosyaların kaydedileceği yer
+    "local-history.daysLimit": 30,    // kaç günlük geçmiş tutulacak
+    "local-history.maxDisplay": 10,   // gösterilecek maksimum versiyon sayısı
+    "local-history.saveDelay": 10     // kaç saniyede bir kayıt alınacak
+}

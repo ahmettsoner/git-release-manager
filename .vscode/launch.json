@@ -1,0 +1,69 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Changelog",
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/src/index.ts",
+            "args": [
+                "changelog",
+                "generate"
+            ],
+            "preLaunchTask": "tsc: build & copy",
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "cwd": "D:\\AS\\W\\PRS\\Opensource\\Pars\\pars"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Flow",
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/src/index.ts",
+            "args": [
+                "flow",
+                "phase",
+                "prod",
+                "--previous"
+            ],
+            "preLaunchTask": "tsc: build & copy",
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "cwd": "D:\\AS\\W\\PRS\\Opensource\\Pars\\pars"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Branch",
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/src/index.ts",
+            "args": [
+                "branch",
+                "create",
+                "release",
+                "new-api2",
+            ],
+            "preLaunchTask": "tsc: build & copy",
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Version",
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/src/index.ts",
+            "args": ["version", "--update"],
+            "preLaunchTask": "tsc: build & copy",
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Jest Tests",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "args": ["--runInBand"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        }
+    ]
+}
