@@ -14,6 +14,7 @@ git tag -d $(git tag)
 git reflog expire --all --expire=now
 git gc --prune=now
 git gc --aggressive --prune=now
+git branch -b dev
 
 ```
 

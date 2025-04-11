@@ -14,9 +14,6 @@ export class ChangelogController {
     async handleGenerateCommand(options: ChangelogGenerateCliArgs, config: Config): Promise<void> {
         this.validator.validateOptions(options)
 
-        if (options.mergeAll === undefined) {
-            options.mergeAll = false
-        }
         try {
             let templatePath = options.template || config.template
             let outputOpt = options.output || config.output
