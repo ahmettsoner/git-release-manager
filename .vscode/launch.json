@@ -9,11 +9,12 @@
             "program": "${workspaceFolder}/src/index.ts",
             "args": [
                 "changelog",
-                "generate"
+                "generate",
+                "--environment",
+                "test"
             ],
             "preLaunchTask": "tsc: build & copy",
-            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-            "cwd": "D:\\AS\\W\\PRS\\Opensource\\Pars\\pars"
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
         },
         {
             "type": "node",
@@ -28,8 +29,7 @@
                 "--previous"
             ],
             "preLaunchTask": "tsc: build & copy",
-            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-            "cwd": "D:\\AS\\W\\PRS\\Opensource\\Pars\\pars"
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
         },
         {
             "type": "node",

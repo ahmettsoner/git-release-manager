@@ -2,6 +2,25 @@
 
 ## Version Command Tests
 
+<<<<<<< HEAD
+=======
+
+```bash
+git checkout --orphan new-main
+git add .
+git commit -m "Initial commit"
+git branch -D main
+git branch -m main
+git branch | grep -v "main" | xargs git branch -D
+git tag -d $(git tag)
+git reflog expire --all --expire=now
+git gc --prune=now
+git gc --aggressive --prune=now
+git branch -b dev
+
+```
+
+>>>>>>> 752555c657a823e32645a94513b519f004ef1a01
 ### Detect & Update Tests
 ```bash
 # Test Case 1: Detect current version

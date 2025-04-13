@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { readConfig } from "../../config/configManager";
 import { ChangelogController } from "../../modules/changelog/ChangelogController";
 import { ChangelogGenerateCliArgs } from "./types/ChangelogGenerateCliArgs";
@@ -27,11 +27,11 @@ export function createChangelogCommand(program: Command) :Command {
         "-p, --point <commit | tag | branch| date | reference>",
         "Specify a single reference"
         )
-        .option("-m, --merge-all", "Merge all changes into a single output")
         .option("--template <path>", "Path to a custom template file")
         .option("-o, --output <path>", "Path to output the changelog")
         .option("--dry-run", "Preview the changelog generation without writing")
-        .action(async (args: string, commandOptions: ChangelogGenerateCliArgs) => {
+        .addOption(new Option("-m, --merge-all", "Merge all changes into a single output").default(false))
+        .action(async (commandOptions: ChangelogGenerateCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
 
         const config = await readConfig(options?.config, options.environment)
