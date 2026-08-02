@@ -105,6 +105,27 @@ export class FlowManager {
             };
         }
     }
+    /**
+     * `flow phase <x>` selects what to compute through mutually exclusive mode
+     * flags (--next, --current, --next-release, --next-fix, --previous,
+     * --previous-fix). With none of them the Determine* methods used to leave
+     * `result` at '' and still print the tag prefix, so `grm flow phase dev`
+     * answered a bare "v" and exited 0 -- a wrong answer that looked like a
+     * successful one. "Give me the next build number" is the only mode every
+     * phase supports, so it is the default; no invocation is left without one.
+     */
+    private applyDefaultMode(options: any): any {
+        const opts = options ?? {}
+        const hasMode =
+            opts.next ||
+            opts.current ||
+            opts.nextRelease ||
+            opts.nextFix ||
+            opts.previous ||
+            opts.previousFix
+        return hasMode ? opts : { ...opts, next: true }
+    }
+
     getVersionPart(version: string, options: any): string {
 
 
@@ -129,7 +150,18 @@ export class FlowManager {
 
     }
 
-    async listBranchTags(branch: string, channel: string | null = null): Promise<string[]> {
+    /**
+     * @param includePrerelease  With no `channel`, the pattern below anchors on
+     *   the patch digit, so it matches ONLY stable tags -- v1.1.0-dev.1 is
+     *   dropped. The phase computation depends on that:
+     *   DetermineProductionPhaseVersion asks for the latest tag on a
+     *   release/X.Y.Z branch with channel=null precisely to ignore the alpha
+     *   and beta tags merged into it. But the `flow tag` query verbs inherited
+     *   the same filter, so `flow tag latest dev` answered "" on a dev branch
+     *   whose every tag is a -dev.N prerelease. The filter is right for the
+     *   computation and wrong for the query, so the query opts out of it.
+     */
+    async listBranchTags(branch: string, channel: string | null = null, includePrerelease: boolean = false): Promise<string[]> {
         try {
             let tagArgs = []
             if(this.config.strictTagBranch){
@@ -138,11 +170,13 @@ export class FlowManager {
             }
 
             const tags = await this.git.raw(['tag',  ...tagArgs]);
-    
-            
+
+
             let tagPattern = `${this.config.tagPrefix}[0-9]*\\.[0-9]*\\.[0-9]*`;
             if (channel) {
                 tagPattern += `-${channel}\\.[0-9]*`;
+            } else if (includePrerelease) {
+                tagPattern += `(-.+)?`;
             }
 
             const regexPattern = tagPattern.replace(/\\\*/g, '.*').replace(/\\\./g, '\\.');
@@ -164,11 +198,11 @@ export class FlowManager {
         }
     }
 
-    async latestTagVersion(branch: string, channel: string | null = null, baseVersion: string | null = null): Promise<string> {
+    async latestTagVersion(branch: string, channel: string | null = null, baseVersion: string | null = null, includePrerelease: boolean = false): Promise<string> {
         try {
             const channelVersion = channel ? `${baseVersion}-${channel}` : baseVersion;
-    
-            const tagList = await this.listBranchTags(branch, channel);
+
+            const tagList = await this.listBranchTags(branch, channel, includePrerelease);
     
             if (!tagList) {
                 return ''
@@ -248,6 +282,7 @@ export class FlowManager {
 
     async DetermineDevPhaseVersion(branch: string, options?: any) {
         try {
+            options = this.applyDefaultMode(options)
             const channel = this.config.defaultDevChannel;
 
             let hasAnyDefaultReleaseChannelVersion = true
@@ -302,6 +337,7 @@ export class FlowManager {
     }
     async DetermineQAPhaseVersion(channel: string, baseVersion?: string, options?: any) {
         try {
+            options = this.applyDefaultMode(options)
             if (!baseVersion) {
                 let latestReleaseBranchBaseVersion = await this.latestReleaseBranchVersion(channel)
                 if (!latestReleaseBranchBaseVersion) {
@@ -347,6 +383,7 @@ export class FlowManager {
     }
     async DetermineStagePhaseVersion(channel: string, baseVersion: string, options?: any) {
         try {
+            options = this.applyDefaultMode(options)
             if (!baseVersion) {
                 let latestReleaseBranchBaseVersion = await this.latestReleaseBranchVersion(channel)
                 if (!latestReleaseBranchBaseVersion) {
@@ -392,6 +429,7 @@ export class FlowManager {
     }
     async DetermineProductionPhaseVersion(channelName: string, baseVersion: string, options?: any) {
         try {
+            options = this.applyDefaultMode(options)
             let latestStableReleaseBranchBaseVersion = null
             if (!baseVersion) {
                 // let latestReleaseBranchBaseVersion = await this.latestReleaseBranchVersion(channelName)

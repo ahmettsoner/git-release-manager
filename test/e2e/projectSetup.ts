@@ -13,7 +13,14 @@ export async function createEmptyTestWorkspace(
     projectPath: string,
     options: ProjectSetupOptions
 ) {
-    // 1. Proje dizini oluştur
+    // 1. Start from a genuinely empty directory.
+    //    `cleanupTestProject` runs at the END of a test body, so it never runs
+    //    for a test that fails. A single failure therefore used to leave a git
+    //    repo (with tags) behind, and every later run of that test started on
+    //    top of it -- `grm version --init` then aborted with "Repository
+    //    already has tags", so the suite could never recover on its own.
+    //    Setup must be idempotent: wipe first, then create.
+    await cleanupTestProject(projectPath)
     fs.mkdirSync(projectPath, { recursive: true })
 
     // 3. Git repo oluştur
@@ -38,7 +45,9 @@ export async function createTestProject(
     projectPath: string,
     options: ProjectSetupOptions
 ) {
-    // 1. Proje dizini oluştur
+    // 1. Same idempotence requirement as createEmptyTestWorkspace: a failed
+    //    earlier run must not be able to poison every later run.
+    await cleanupTestProject(projectPath)
     fs.mkdirSync(projectPath, { recursive: true })
 
     // 2. Package.json oluştur

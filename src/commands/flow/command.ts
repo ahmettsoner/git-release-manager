@@ -111,7 +111,8 @@ export function createFlowCommand(program: Command) :Command {
                 const options = { ...program.opts(), ...commandOptions }
     
                 const flowManager = new FlowManager()
-                const existingTags = await flowManager.listBranchTags(branch)
+                // Query verb: report every tag on the branch, prereleases included.
+                const existingTags = await flowManager.listBranchTags(branch, null, true)
                 console.log(existingTags)
             })
     )
@@ -125,7 +126,9 @@ export function createFlowCommand(program: Command) :Command {
             .action(async (branch: string, commandOptions: any) => {
                 const options = { ...program.opts(), ...commandOptions }
                 const flowManager = new FlowManager()
-                const latestBranchTag = await flowManager.latestTagVersion(branch)
+                // Query verb: a dev/alpha/beta branch's newest tag IS a
+                // prerelease, so excluding them would make this always empty.
+                const latestBranchTag = await flowManager.latestTagVersion(branch, null, null, true)
                 const latestBranchVersion = flowManager.getVersionPart(latestBranchTag, options)
                 console.log(latestBranchVersion)
             })

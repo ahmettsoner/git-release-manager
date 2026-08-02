@@ -48,9 +48,29 @@ describe('E2E: Branch merge operations', () => {
         // Merge the feature branch
         execSync(`grm branch merge ${branchToMerge}`, { cwd: PROJECT_DIR })
 
-        // Verify the merge
+        // Verify the merge.
+        //
+        // grm merges with --no-ff on purpose: every step documented in
+        // src/commands/flow/README.md merges --no-ff, and a fast-forward
+        // records no merge commit at all (so it fires no merge hooks and
+        // leaves the release history unable to say where a branch landed).
+        // The tip of the log is therefore the MERGE commit, not the feature
+        // commit -- asserting the feature commit is on top would have been an
+        // assertion against the product's own merge policy.
         const log = await git.log()
-        expect(log.latest?.message).toBe('Commit on feature branch')
+        expect(log.latest?.message).toMatch(/^Merge /)
+
+        // The feature commit must have actually been brought in ...
+        expect(log.all.some(commit => commit.message === 'Commit on feature branch')).toBe(true)
+
+        // ... via a real two-parent merge commit. This is the load-bearing
+        // check: it fails both for a fast-forward (one parent) and for a
+        // build that never merged at all (no such commit).
+        const parents = (await git.raw(['rev-list', '--parents', '-n', '1', 'HEAD'])).trim().split(/\s+/)
+        expect(parents).toHaveLength(3)
+
+        // ... and the content landed on the base branch.
+        expect(fs.readFileSync(join(PROJECT_DIR, 'feature.txt'), 'utf8')).toBe('Feature branch content')
     })
 
     test('Merge a branch using remote/branch syntax into the current branch', async () => {
@@ -72,9 +92,18 @@ describe('E2E: Branch merge operations', () => {
         // Merge using origin/branch syntax by specifying the full remote branch path
         execSync(`grm branch merge origin/${branchToMerge}`, { cwd: PROJECT_DIR })
 
-        // Verify the merge
+        // Verify the merge -- same --no-ff reasoning as above, so the tip is
+        // the merge commit ("Merge remote-tracking branch 'origin/...'").
         const log = await git.log()
-        expect(log.latest?.message).toBe('Commit on syntax feature branch')
+        expect(log.latest?.message).toMatch(/^Merge /)
+        expect(log.all.some(commit => commit.message === 'Commit on syntax feature branch')).toBe(true)
+
+        const parents = (await git.raw(['rev-list', '--parents', '-n', '1', 'HEAD'])).trim().split(/\s+/)
+        expect(parents).toHaveLength(3)
+
+        expect(fs.readFileSync(join(PROJECT_DIR, 'syntax-feature.txt'), 'utf8')).toBe(
+            'Syntax feature branch content'
+        )
     })
 
     test('Squash merge a local branch into the current branch', async () => {

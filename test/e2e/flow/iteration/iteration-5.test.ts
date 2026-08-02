@@ -38,7 +38,7 @@ describe('E2E: Iteration Scenario Iteration 3', () => {
 
         const expectedVersion = 'v1.1.0'
 
-        const versionOutput = execSync('grm flow phase production v1.1.0', {
+        const versionOutput = execSync('grm flow phase prod v1.1.0', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
