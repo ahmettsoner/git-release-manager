@@ -1,13 +1,13 @@
 const fs = require('fs')
 const ejs = require('ejs')
 const path = require('path')
-const { renderTemplate } = require('../../src/templates')
+const { renderTemplate } = require('../../../src/templates/templateRenderer')
 
 // Mock dependencies
 jest.mock('fs')
 jest.mock('ejs')
-jest.mock('../../src/templates', () => ({
-    ...jest.requireActual('../../src/templates'),
+jest.mock('../../../src/templates/templateRenderer', () => ({
+    ...jest.requireActual('../../../src/templates/templateRenderer'),
     resolveTemplatePath: jest.fn(),
 }))
 jest.mock('path', () => ({
@@ -29,7 +29,7 @@ describe('renderTemplate', () => {
         path.resolve.mockImplementation(p => p)
         fs.readFileSync.mockReturnValue(mockTemplateContent)
         ejs.render.mockReturnValue(mockRenderedContent)
-        require('../../src/templates').resolveTemplatePath.mockResolvedValue(mockTemplatePath)
+        require('../../../src/templates/templateRenderer').resolveTemplatePath.mockResolvedValue(mockTemplatePath)
     })
 
     test('should render template with provided data', async () => {

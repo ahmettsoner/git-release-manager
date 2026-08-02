@@ -1,7 +1,7 @@
-const { getBranchesAsync } = require('../../../src/git/contextHelper')
-const { runCommandAsync } = require('../../../src/utils/cmd')
+const { getBranchesAsync } = require('../../../../src/modules/git/context/branchHandler')
+const { runCommandAsync } = require('../../../../src/utils/cmd')
 
-jest.mock('../../../src/utils/cmd', () => ({
+jest.mock('../../../../src/utils/cmd', () => ({
     runCommandAsync: jest.fn(),
 }))
 

@@ -1,7 +1,7 @@
-const { getTagsAsync } = require('../../../src/git/contextHelper')
-const { runCommandAsync } = require('../../../src/utils/cmd')
+const { getTagsAsync } = require('../../../../src/modules/git/context/tagHandler')
+const { runCommandAsync } = require('../../../../src/utils/cmd')
 
-jest.mock('../../../src/utils/cmd', () => ({
+jest.mock('../../../../src/utils/cmd', () => ({
     runCommandAsync: jest.fn(),
 }))
 
@@ -55,7 +55,7 @@ describe('getTagsAsync', () => {
         
         runCommandAsync.mockRejectedValue(new Error('Git command failed'))
 
-         & Assert
+         // Act & Assert
         await expect(getTagsAsync()).rejects.toThrow('Git command failed')
     })
 

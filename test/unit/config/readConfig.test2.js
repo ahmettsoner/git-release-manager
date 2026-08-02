@@ -120,7 +120,7 @@ describe('readConfig', () => {
             { virtual: true }
         )
 
-         & Assert
+         // Act & Assert
         await expect(readConfig()).rejects.toThrow('Permission denied')
     })
 })

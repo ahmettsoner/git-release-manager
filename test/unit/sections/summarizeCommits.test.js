@@ -1,4 +1,4 @@
-const { summarizeCommits } = require('../../src/sections/index')
+const { summarizeCommits } = require('../../../src/modules/sections/summarizing')
 
 describe('summarizeCommits', () => {
     const mockConfig = {
@@ -62,7 +62,7 @@ describe('summarizeCommits', () => {
     })
 
     test('should throw error for invalid input', () => {
-         & Act
+         // Arrange & Act
         expect(() => summarizeCommits(null, mockConfig)).toThrow('Invalid input: commits must be an array')
         expect(() => summarizeCommits(undefined, mockConfig)).toThrow('Invalid input: commits must be an array')
         expect(() => summarizeCommits('not-an-array', mockConfig)).toThrow('Invalid input: commits must be an array')

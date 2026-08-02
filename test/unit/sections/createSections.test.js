@@ -1,4 +1,4 @@
-const { createSections } = require('../../src/sections/index')
+const { createSections } = require('../../../src/modules/sections/index')
 
 describe('createSections', () => {
     const mockConfig = {
@@ -28,7 +28,7 @@ describe('createSections', () => {
     ]
 
     test('should create sections with valid input', () => {
-         & Act
+         // Arrange & Act
         const sections = createSections(mockCommits, mockConfig)
 
         
@@ -69,7 +69,7 @@ describe('createSections', () => {
     })
 
     test('should throw error for invalid input', () => {
-         & Assert
+         // Act & Assert
         expect(() => createSections(null, mockConfig)).toThrow()
         expect(() => createSections(undefined, mockConfig)).toThrow()
         expect(() => createSections('not-an-array', mockConfig)).toThrow()

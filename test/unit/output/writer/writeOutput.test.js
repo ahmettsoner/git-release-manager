@@ -1,4 +1,4 @@
-const { writeOutput } = require('../../../src/output/writer')
+const { writeOutput } = require('../../../../src/modules/output/writer')
 const fs = require('fs')
 const path = require('path')
 

@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const { resolveTemplatePath } = require('../../src/templates')
+const { resolveTemplatePath } = require('../../../src/templates/templateResolver')
 
 // Mock fs and path modules
 jest.mock('fs')

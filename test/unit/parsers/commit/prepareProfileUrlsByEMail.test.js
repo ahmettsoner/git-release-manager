@@ -1,4 +1,4 @@
-const { prepareProfileUrlsByEMail } = require('../../../src/parsers/commit')
+const { prepareProfileUrlsByEMail } = require('../../../../src/modules/git/commits/profileHandler')
 
 describe('prepareProfileUrlsByEMail', () => {
     beforeEach(() => {})
@@ -27,7 +27,7 @@ describe('prepareProfileUrlsByEMail', () => {
     })
 
     it('should handle null or undefined email', async () => {
-         & Assert
+         // Act & Assert
         expect(await prepareProfileUrlsByEMail(null)).toBeUndefined()
         expect(await prepareProfileUrlsByEMail(undefined)).toBeUndefined()
     })

@@ -1,7 +1,7 @@
-const { getStatusAsync } = require('../../../src/git/contextHelper')
-const { runCommandAsync } = require('../../../src/utils/cmd')
+const { getStatusAsync } = require('../../../../src/modules/git/context/statusHandler')
+const { runCommandAsync } = require('../../../../src/utils/cmd')
 
-jest.mock('../../../src/utils/cmd', () => ({
+jest.mock('../../../../src/utils/cmd', () => ({
     runCommandAsync: jest.fn(),
 }))
 

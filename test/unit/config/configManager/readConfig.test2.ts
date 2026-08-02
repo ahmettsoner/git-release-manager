@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import * as fs from 'fs'
 import * as path from 'path'
-import { readConfig } from '../../../src/config/configManager'
+import { readConfig } from '../../../../src/config/configManager'
 
 jest.mock('fs', () => ({
     existsSync: jest.fn(),
