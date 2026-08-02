@@ -123,13 +123,19 @@ async  syncVersions(push?: boolean): Promise<void> {
 
 
 
-async createGitTag (version: string): Promise<void> {
-    try {
-        await git.addTag(version)
-        // await git.pushTags()
-    } catch (error) {
-        console.error('Could not create git tag:', error)
-    }
+async createGitTag (version: string, message?: string): Promise<void> {
+    // ANNOTATED, not lightweight. simple-git's addTag() creates a lightweight
+    // tag: a bare ref with no tagger, no date and no message, so a release
+    // identified by one carries no record of who cut it or when. Consumers
+    // reject them for exactly that reason — `git describe --exact-match`
+    // ignores lightweight tags by default, so a downstream derivation looking
+    // for "the version at this commit" simply does not see it.
+    //
+    // The failure is also no longer swallowed. It used to console.error and
+    // return, so a run that created NOTHING still printed "Version X created
+    // successfully" and exited 0 — the caller had no way to tell a real release
+    // from a no-op.
+    await git.raw(['tag', '-a', version, '-m', message ?? version])
 }
     async initVersion(options: VersionCliArgs): Promise<string> {
         const prefix = options.prefix ?? ''
