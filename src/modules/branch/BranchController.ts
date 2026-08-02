@@ -114,7 +114,7 @@ export class BranchController {
         }
     }
 
-    async handleCommand(options: BranchCliArgs, config: Config): Promise<void> {
+    async handleCommand(options: BranchCliArgs): Promise<void> {
         try {
             const config = await readConfig(options.config, options.environment);
             if (options.create) {
@@ -134,7 +134,12 @@ export class BranchController {
             } else if (options.feature) {
                 await this.branchManager.createFeatureBranch(config, options.feature, options.push)
             } else if (options.finish) {
-                await this.branchManager.finishBranch(config, options.finish, options.push)
+                // Bare `--finish` arrives as boolean true. finishBranch() already
+                // means "the current branch" when it gets no name, so the boolean
+                // is translated here rather than leaking a `true` into a parameter
+                // typed as a branch name.
+                const finishTarget = typeof options.finish === 'string' ? options.finish : undefined
+                await this.branchManager.finishBranch(config, finishTarget, options.push)
             } else if (options.protect) {
                 // await this.branchManager.protectBranch(options.protect)
             } else if (options.unprotect) {

@@ -1,12 +1,11 @@
-import { CliArgs } from "../../types/CliArgs";
+import { ChangelogCliArgs } from "./ChangelogCliArgs";
 
-export interface ChangelogGenerateCliArgs extends CliArgs {
-    from?: string
-    to?: string
-    point?: string
-    range?: string
+/**
+ * `changelog generate` is the same option shape as `changelog`, with the three
+ * fields the subcommand always supplies narrowed to required.
+ */
+export interface ChangelogGenerateCliArgs extends ChangelogCliArgs {
     mergeAll: boolean
     template: string
     output: string
-    dryRun?: boolean;           // İşlemleri göstermek için
 }

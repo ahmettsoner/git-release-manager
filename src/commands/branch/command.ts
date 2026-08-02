@@ -8,6 +8,7 @@ import { BranchProtectCliArgs } from './types/BranchProtectCliArgs'
 import { BranchUnProtectCliArgs } from './types/BranchUnProtectCliArgs'
 import { BranchRebaseCliArgs } from './types/BranchRebaseCliArgs'
 import { BranchListCliArgs } from './types/BranchListCliArgs'
+import { BranchCliArgs } from './types/BranchCliArgs'
 
 const branchTypes = [
     { name: 'release', prefix: 'release/' },
@@ -81,7 +82,34 @@ export async function createBranchCommand(program: Command): Promise<Command> {
             });
     };
 
-    const programBranch = program.command('branch').alias('b').description('Manage different types of git branches')
+    // ── The FLOW-VERB surface, wired to the controller that already served it ──
+    //
+    // BranchController.handleCommand is a FLAT flag dispatcher and always has
+    // been: it branches on options.release / .hotfix / .feature / .finish /
+    // .sync and calls BranchManager.createReleaseBranch, createHotfixBranch,
+    // createFeatureBranch, finishBranch and syncBranch. Those five manager
+    // methods are implemented and reachable from nothing.
+    //
+    // The parent `branch` command carried no options and no action, so every one
+    // of those spellings answered "unknown option" — the mechanism existed, the
+    // door to it did not. This is the wiring, not a reimplementation: the same
+    // controller, the same option shape.
+    const programBranch = program
+        .command('branch')
+        .alias('b')
+        .description('Manage different types of git branches')
+        .option('--release <version>', 'Create a protected release branch (release/<version>)')
+        .option('--hotfix <version>', 'Create a hotfix branch (hotfix/<version>)')
+        .option('--feature <name>', 'Create a feature branch (feature/<name>)')
+        .option('--finish [branchName]', 'Merge, tag and clean up a feature/release/hotfix branch (defaults to the current branch)')
+        .option('--sync', 'Rebase the current branch onto its remote counterpart')
+        .option('--push', 'Push the resulting branch and tags to the remote')
+        .action(async (commandOptions: BranchCliArgs, command: Command) => {
+            const options = { ...program.opts(), ...command.optsWithGlobals() } as BranchCliArgs
+
+            const controller = new BranchController()
+            await controller.handleCommand(options)
+        })
     const programBranchCreate = new Command()
         .command('create')
         .alias('c')
@@ -235,14 +263,6 @@ export async function createBranchCommand(program: Command): Promise<Command> {
     //         console.log(`Comparing version: ${commandOptions.draft}`);
     //       })
     //   )
-    //   // .option('--release <version>', 'Create a release branch (release/{version})')
-    //   // .option('--hotfix <version>', 'Create a hotfix branch (hotfix/{version})')
-    //   // .option('--feature <name>', 'Create a feature branch (feature/{name})')
-    //   // .option('--finish [branchName]', 'Finish a feature/release/hotfix branch')
-    //   .action(async (commandOptions: BranchCliArgs) => {
-    //     const options = { ...program.opts(), ...commandOptions };
-    //     branchRun(options);
-    //   });
 
     return programBranch
 }

@@ -1,4 +1,4 @@
-import { ChangelogGenerateCliArgs } from '../../commands/changelog/types/ChangelogGenerateCliArgs';
+import { ChangelogCliArgs } from '../../commands/changelog/types/ChangelogCliArgs';
 import { Config } from '../../config/types/Config';
 import { writeOutput } from '../output/writer';
 import { ChangelogValidator } from './ChangelogValidator';
@@ -11,7 +11,7 @@ export class ChangelogController {
         this.validator = new ChangelogValidator();
     }
 
-    async handleGenerateCommand(options: ChangelogGenerateCliArgs, config: Config): Promise<void> {
+    async handleGenerateCommand(options: ChangelogCliArgs, config: Config): Promise<void> {
         this.validator.validateOptions(options)
 
         try {

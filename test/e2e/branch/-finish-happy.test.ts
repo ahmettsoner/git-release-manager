@@ -102,20 +102,28 @@ describe('E2E: Branch finish operations', () => {
         expect(tags.all).toContain('v1.0.0')
     })
 
+    // The version here must NOT be the one the previous test already tagged.
+    // This test asserts that a branch named WITHOUT the configured tagPrefix
+    // ("release/2.0.0") still produces a prefixed tag ("v2.0.0"). Asserting
+    // v1.0.0 — as this test used to — proved nothing: the previous test had
+    // already created that exact tag from an ALREADY-prefixed branch name, so
+    // the assertion passed on someone else's tag whether auto-prefixing worked
+    // or not. It also made the run impossible: `git tag -a v1.0.0` on a repo
+    // that already has v1.0.0 is a hard error.
     test('Finish a release branch with tag creation with auto prefix', async () => {
-        await git.checkoutLocalBranch('release/1.0.0')
-        fs.writeFileSync(join(PROJECT_DIR, 'release.txt'), 'Release branch content\n')
+        await git.checkoutLocalBranch('release/2.0.0')
+        fs.writeFileSync(join(PROJECT_DIR, 'release.txt'), 'Release branch content for 2.0.0\n')
         await git.add('.')
         await git.commit('Add release notes')
 
         await git.checkout('main')
-        execSync(`grm branch --finish release/1.0.0 --config ${configPath}`, { cwd: PROJECT_DIR })
+        execSync(`grm branch --finish release/2.0.0 --config ${configPath}`, { cwd: PROJECT_DIR })
 
         const branches = await git.branchLocal()
-        expect(branches.all).not.toContain('release/1.0.0')
+        expect(branches.all).not.toContain('release/2.0.0')
 
         const tags = await git.tags()
-        expect(tags.all).toContain('v1.0.0')
+        expect(tags.all).toContain('v2.0.0')
     })
 
     test('Finish a hotfix branch with tag creation', async () => {
