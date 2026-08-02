@@ -63,9 +63,9 @@ describe('summarizeNotes', () => {
 
     test('should throw error for invalid input', () => {
          // Act & Assert
-        expect(() => summarizeNotes(null, mockConfig)).toThrow('Invalid input: array must be an array')
-        expect(() => summarizeNotes(undefined, mockConfig)).toThrow('Invalid input: array must be an array')
-        expect(() => summarizeNotes('not-an-array', mockConfig)).toThrow('Invalid input: array must be an array')
+        expect(() => summarizeNotes(null, mockConfig)).toThrow('Invalid input: notes must be an array')
+        expect(() => summarizeNotes(undefined, mockConfig)).toThrow('Invalid input: notes must be an array')
+        expect(() => summarizeNotes('not-an-array', mockConfig)).toThrow('Invalid input: notes must be an array')
     })
 
     test('should sort by order', () => {

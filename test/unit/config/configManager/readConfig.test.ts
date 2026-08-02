@@ -19,7 +19,16 @@ function isPathLike(param: any): param is fs.PathLike {
 }
 describe('readConfig', () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        // `clearAllMocks` clears recorded calls but NOT the queue left behind by
+        // `mockResolvedValueOnce`. The first case queues three values and consumes
+        // one, so the leftovers leaked forward: case 2 read `prop1: 'custom'` and
+        // case 3 read `prop: 'production'`. That makes the verdict depend on test
+        // order, which measures the queue, not readConfig. `resetAllMocks` drains it.
+        jest.resetAllMocks()
+        // resetAllMocks also drops the identity implementation the module factory
+        // gave path.resolve; without it resolve returns undefined and readConfig
+        // silently skips the custom-config branch. Restore it explicitly.
+        ;(path.resolve as jest.Mock).mockImplementation((...args: unknown[]) => args[0] as string)
         ;(fs.existsSync as jest.Mock).mockReturnValue(true)
     })
 
@@ -31,16 +40,21 @@ describe('readConfig', () => {
 
         const readFileMock = fs.promises.readFile as jest.MockedFunction<typeof fs.promises.readFile>
 
+        // readConfig reads in the order custom -> local -> default, so the queued
+        // values arrive in THAT order. The three `mockDefault/Local/Custom` names
+        // are therefore off by their position, which is what made an earlier
+        // reader annotate the assertion below as wrong. It is not wrong: the 1st
+        // queued value becomes the CUSTOM config and wins the merge.
         readFileMock
-            .mockResolvedValueOnce(JSON.stringify(mockDefaultConfig)) // Default config
-            .mockResolvedValueOnce(JSON.stringify(mockLocalConfig)) // Local config
-            .mockResolvedValueOnce(JSON.stringify(mockCustomConfig)) // Custom config
+            .mockResolvedValueOnce(JSON.stringify(mockDefaultConfig)) // read 1 -> custom slot
+            .mockResolvedValueOnce(JSON.stringify(mockLocalConfig)) // read 2 -> default slot
+            .mockResolvedValueOnce(JSON.stringify(mockCustomConfig)) // never read: custom was non-empty, local is skipped
 
         const result = await readConfig(customConfigPath)
 
         expect(fs.promises.readFile).toHaveBeenCalledWith(customConfigPath, 'utf-8')
         expect(result).toEqual({
-            prop1: 'default', //! validate custom config, not correct in test case? should validate "custom" for prop1
+            prop1: 'default',
             prop2: 'default',
         })
     })
