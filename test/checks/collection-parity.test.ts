@@ -39,7 +39,7 @@ const LOOKS_LIKE_A_TEST = /\.(test|spec)\d*\.[jt]sx?$/i
  * walk below silently finds nothing (wrong root, broken regex, renamed tree),
  * both sides of the comparison go empty and the parity assertion passes while
  * measuring nothing. This floor makes that failure loud. Measured population at
- * the time of writing: 60 files on disk, 60 collected by jest.
+ * the time of writing: 61 files on disk, 61 collected by jest, 185 tests green.
  */
 const NON_VACUITY_FLOOR = 55
 
