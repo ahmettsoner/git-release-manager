@@ -88,6 +88,23 @@ export class VersionController {
             } else {
                 newVersion = await this.gitManager.generateNewVersion(options)
             }
+            // --dry-run: answer "what WOULD be cut" without cutting.
+            //
+            // Every other path here mutates — createVersion writes release
+            // notes, createGitTag moves refs, push touches the remote — so
+            // asking the question used to mean performing the answer. A
+            // release plane whose only way to report the next version is to
+            // MINT it cannot be consulted by anything upstream: a build that
+            // wants to stamp the version it is about to produce, a CI gate
+            // checking the bump is the intended one, or an operator simply
+            // looking. The version is printed on stdout ALONE so it can be
+            // captured with $(...); everything explanatory goes to stderr.
+            if (options.dryRun) {
+                console.error(`dry-run: would create ${newVersion} (nothing was written)`)
+                console.log(newVersion)
+                return
+            }
+
             await this.releaseManager.createVersion(newVersion, options)
 
             // Create git tag
