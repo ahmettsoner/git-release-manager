@@ -51,7 +51,10 @@ export function createVersionCommand(program: Command) :Command {
     .option("--validate <version>", "Check whether a version string is valid")
     .option("--detect", "Detect the current version from the project file")
     .option("--update [version]", "Update the version in the project file")
+    // Both spellings: the e2e suite and the notes use --project-path, the
+    // `version project` subcommand uses --path. They are one value.
     .option("--path <path>", "Project file or folder path")
+    .option("--project-path <path>", "Project file or folder path (alias of --path)")
     .option("--sync", "Sync versions with the remote")
     .option("--push", "Push commits and tags to the remote")
     .option("--note <message>", "Add a release note")
@@ -59,7 +62,7 @@ export function createVersionCommand(program: Command) :Command {
     .action(async (commandOptions: VersionCliArgs) => {
         // --path is the CLI spelling of the controller's projectPath, the same
         // translation `version project` performs.
-        const options = { ...program.opts(), ...commandOptions, projectPath: (commandOptions as any).path } as VersionCliArgs;
+        const options = { ...program.opts(), ...commandOptions, projectPath: (commandOptions as any).projectPath ?? (commandOptions as any).path } as VersionCliArgs;
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
     });
