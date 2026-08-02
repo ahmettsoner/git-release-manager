@@ -5,26 +5,39 @@ import simpleGit, { SimpleGit } from 'simple-git'
 import { cleanupTestProject, createTestProject } from './projectSetup'
 
 describe('E2E: Complete Release Workflow', () => {
-    const E2E_DIR = join(__dirname, '../../../temp/test/e2e')
+    // '../../temp', not '../../../temp'. This file sits at test/e2e/, one level
+    // ABOVE every other e2e test (test/e2e/<group>/), and copied their relative
+    // path verbatim -- so the extra '..' walked out of the repository and this
+    // suite created <repo>/../temp, a directory in whatever happens to contain
+    // the checkout. Measured 2026-08-02: /home/ahmet.soner/AS/prj/temp existed,
+    // holding the empty skeleton afterAll's cleanup left behind. The '.gitignore'
+    // path below was correct at '../../', which is exactly what hid this: the
+    // ignore rule was aimed at the repo while the mess was made outside it.
+    const E2E_DIR = join(__dirname, '../../temp/test/e2e')
     const PROJECT_DIR = join(E2E_DIR, 'test-project')
     let git: SimpleGit
 
     beforeAll(async () => {
-        // Dizini temizle ve oluştur
+        // NO .gitignore MUTATION HERE. This block used to append
+        // "# Test temporary files\ntemp/" to the repository's TRACKED
+        // .gitignore at test time, creating it first if absent. Two things were
+        // wrong with it, and only one of them was visible:
+        //
+        //   * a test run dirtied a tracked file, so `git status` after `npm
+        //     test` reported a modification nobody made. It is quiet TODAY only
+        //     because the append already landed and was committed -- the guard
+        //     `includes('temp/')` now short-circuits. Revert that line and the
+        //     leak returns; the defect never went away, its symptom did.
+        //   * an ignore rule is repository configuration, not test setup. It
+        //     belongs in the committed .gitignore, where it now is, reviewable
+        //     and diffable, rather than being reconstructed by whichever suite
+        //     happens to run first.
+        //
+        // The suite writes <repo>/temp, .gitignore ignores temp/, and neither
+        // fact is discovered at runtime any more.
         await cleanupTestProject(E2E_DIR);
         fs.mkdirSync(E2E_DIR, { recursive: true })
 
-        // .gitignore dosyasını kontrol et ve güncelle
-        const gitignorePath = join(__dirname, '../../.gitignore')
-        if (!fs.existsSync(gitignorePath)) {
-            fs.writeFileSync(gitignorePath, '')
-        }
-        
-        const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8')
-        if (!gitignoreContent.includes('temp/')) {
-            fs.appendFileSync(gitignorePath, '\n# Test temporary files\ntemp/\n')
-        }
-    
         // Gerçek bir proje ortamı oluştur
         await createTestProject(PROJECT_DIR, {
             withGit: true,

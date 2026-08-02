@@ -1,7 +1,83 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import simpleGit, { SimpleGit } from 'simple-git'
 import { GitVersionManager } from './GitVersionManager'
+
+/**
+ * Names in `directory` matching a SINGLE-SEGMENT filename pattern whose only
+ * wildcard is `*`. Sorted, files only.
+ *
+ * ── WHY THIS EXISTS INSTEAD OF `glob` ────────────────────────────────────
+ *
+ * The project-file table below has exactly one wildcard in it, `*.csproj`:
+ * one path segment, one star, a flat listing of the current directory. The
+ * call site used to be `require('glob')` inside a function body, which bought
+ * recursion, brace expansion, ignore lists and negation — none of them
+ * reachable from that table.
+ *
+ * The cost was not a heavier install; it was a MISSING one. `glob` was never
+ * declared in `dependencies`. It resolved transitively through
+ * devDependencies in a development checkout, so it worked here and only here.
+ * In a packaged install — `npm pack` + `npm install --global`, which ships
+ * `dependencies` and nothing else — it is absent, and `grm version --detect`
+ * dies with "Cannot find module 'glob'". Measured 2026-08-02 against
+ * ~/.local/lib/node_modules/git-release-manager: nine e2e cases red, while the
+ * same code passed from the source tree.
+ *
+ * Promoting `glob` to `dependencies` would also close it, and was rejected:
+ * the version transitively present is 7.2.3, which is end-of-life, and glob 9+
+ * renamed `sync` to `globSync`, so the honest options were "ship a deprecated
+ * major" or "change this code anyway". `fs.globSync` closes it in one line but
+ * arrived in Node 22, and package.json declares `engines: { node: '>=14' }` —
+ * trading an undeclared dependency for a silently broken engine floor is the
+ * same defect in different clothes.
+ *
+ * ── IT REFUSES WHAT IT CANNOT SERVE ──────────────────────────────────────
+ *
+ * A pattern with a path separator, `**`, or any other glob metacharacter needs
+ * a real glob implementation. Returning "no match" for one would surface later
+ * as "No supported project file found in current directory" — a sentence that
+ * sounds true and describes the wrong thing. So it throws, naming the pattern.
+ */
+export function matchFilesInDirectory(pattern: string, directory: string): string[] {
+    // Anything that is a glob metacharacter but not the `*` handled below.
+    if (pattern.includes('**') || /[/\\?[\]{}()!+@]/.test(pattern)) {
+        throw new Error(
+            `Unsupported project file pattern '${pattern}': ` +
+                `only single-segment names whose sole wildcard is '*' are supported.`
+        )
+    }
+
+    // Split on `*` FIRST, then escape each literal chunk. That way the star is
+    // never itself escaped, and every other regex metacharacter is.
+    const source = pattern
+        .split('*')
+        .map(chunk => chunk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('[^/]*')
+    const matcher = new RegExp(`^${source}$`)
+
+    let entries
+    try {
+        entries = readdirSync(directory, { withFileTypes: true })
+    } catch {
+        // An unreadable directory has no project file in it. The caller's own
+        // "no supported project file found" is the right sentence here.
+        return []
+    }
+
+    return entries
+        .filter(entry => entry.isFile() || entry.isSymbolicLink())
+        .map(entry => entry.name)
+        // glob parity: a leading `*` does not match a leading dot, so
+        // `*.csproj` must not select a file literally named `.csproj`.
+        .filter(name => !(name.startsWith('.') && pattern.startsWith('*')))
+        .filter(name => matcher.test(name))
+        // glob.sync returns sorted results by default, and the caller takes
+        // [0]. Without this the pick would follow readdir order, which is
+        // filesystem-dependent — the same directory could resolve to a
+        // different project file on a different machine.
+        .sort()
+}
 
 interface ProjectVersion {
     currentVersion: string
@@ -165,9 +241,10 @@ export class ProjectVersionManager {
         // Path belirtilmemişse, mevcut dizinde desteklenen ilk proje dosyasını bul
         for (const { pattern, handler } of this.PROJECT_FILES) {
             if (pattern.includes('*')) {
-                // Wildcard içeren dosya isimleri için glob kullanılabilir
-                const glob = require('glob')
-                const files = glob.sync(pattern, { cwd: process.cwd() })
+                // Wildcard patterns are matched against a flat listing of the
+                // current directory — see matchFilesInDirectory for why this is
+                // not `glob`.
+                const files = matchFilesInDirectory(pattern, process.cwd())
                 if (files.length > 0) {
                     return {
                         filePath: join(process.cwd(), files[0]),
