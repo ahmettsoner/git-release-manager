@@ -60,6 +60,7 @@ export function createVersionCommand(program: Command) :Command {
     .option("--note <message>", "Add a release note")
     .option("--note-file <path>", "Load release notes from a file")
     .option("-n, --dry-run", "Print the version that WOULD be cut; write nothing")
+    .option("--from <version>", "Compute from THIS baseline instead of discovering the latest tag")
     .action(async (commandOptions: VersionCliArgs) => {
         // --path is the CLI spelling of the controller's projectPath, the same
         // translation `version project` performs.
@@ -112,6 +113,7 @@ export function createVersionCommand(program: Command) :Command {
         .option("--note <message>", "Add a release note")
         .option("--note-file <path>", "Load release notes from a file")
         .option("-n, --dry-run", "Print the version that WOULD be cut; write nothing")
+        .option("--from <version>", "Compute from THIS baseline instead of discovering the latest tag")
         // NO positional argument is declared, so commander invokes the action as
         // (options, command). The old signature named the FIRST parameter `args`
         // and read the SECOND as the options — which handed it a Command

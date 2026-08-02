@@ -152,7 +152,16 @@ async createGitTag (version: string, message?: string): Promise<void> {
     async  generateNewVersion(options: VersionCliArgs): Promise<string> {
         let newVersion: string
     
-            const latestTag = await this.getLatestTag(options.prefix, options.channel)
+            // --from lets a CALLER supply the baseline instead of having it
+            // discovered here. Discovery is a policy question this engine
+            // cannot answer for everyone: getLatestTag takes the highest tag
+            // matching prefix/channel, but a consumer may require that the tag
+            // be ANNOTATED, or reachable from a particular branch, or both.
+            // Without an injection point such a consumer has to reimplement the
+            // arithmetic to keep its own baseline — which is how two semver
+            // implementations end up in one release path, disagreeing exactly
+            // where it is hardest to see.
+            const latestTag = options.from ? options.from : await this.getLatestTag(options.prefix, options.channel)
 
             const type = options.major ? 'major' : options.minor ? 'minor' : options.patch ? 'patch' : undefined
             newVersion = await incrementVersion(latestTag, type, {

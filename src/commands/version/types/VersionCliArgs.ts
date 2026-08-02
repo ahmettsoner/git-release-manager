@@ -30,6 +30,7 @@ export interface VersionCliArgs extends CliArgs {
     revert?: string
     validate?: string
     dryRun?: boolean
+    from?: string
     branch?: boolean
     sync?: boolean
 }

@@ -110,7 +110,14 @@ export class VersionController {
             // Create git tag
             if (options.tag !== false) {
                 // Default to true if not explicitly set to false
-                await this.gitManager.createGitTag(newVersion)
+                // The note becomes the ANNOTATED TAG'S BODY. It was being
+                // dropped: createGitTag was called without it, so the tag
+                // message defaulted to the version string and the release note
+                // lived only wherever createVersion put it. An annotated tag
+                // whose body merely repeats its own name records nothing —
+                // "who cut this, from what, and why" is the entire reason the
+                // tag is an object rather than a ref.
+                await this.gitManager.createGitTag(newVersion, options.note)
                 console.log(`Created tag: ${newVersion}`)
             }
 
