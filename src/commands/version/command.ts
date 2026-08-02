@@ -24,13 +24,23 @@ export function createVersionCommand(program: Command) :Command {
         .alias("vin")
         .description("Initialize the project version")
         .addArgument(new Argument("<version>", "Version to initialize"))
+        // initVersion() already READS options.prefix to build the initial tag —
+        // the CLI simply never offered it, so `version init 1.0.0 --prefix v`
+        // died on "unknown option" for a value the engine was waiting for.
+        // Prefixes are how independent version LINES coexist in one repo
+        // (gear-v1.0.0 alongside plugin-v0.3.2), so init must accept one.
+        .option("--prefix <prefix>", "Prefix for this version line (e.g. v, gear-v)")
         .option("--note <message>", "Add a release note during initialization")
         .option(
         "--note-file <path>",
         "Load release notes from a file for initialization"
         )
         .action(async (args: string, commandOptions: VersionInitCliArgs) => {
-        const options = { ...program.opts(), ...commandOptions };
+        // The positional is the version being initialised. The controller is a
+        // FLAT flag dispatcher (options.init), so the subcommand layer has to
+        // translate — parsing it and not forwarding it is why `version init
+        // 1.0.0` silently produced 0.0.0.
+        const options = { ...program.opts(), ...commandOptions, init: args };
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -51,7 +61,12 @@ export function createVersionCommand(program: Command) :Command {
         .option("--no-channel-number", "Exclude channel number")
         .option("--note <message>", "Add a release note")
         .option("--note-file <path>", "Load release notes from a file")
-        .action(async (args: string, commandOptions: VersionIncrementCliArgs) => {
+        // NO positional argument is declared, so commander invokes the action as
+        // (options, command). The old signature named the FIRST parameter `args`
+        // and read the SECOND as the options — which handed it a Command
+        // instance, so every flag on this subcommand was silently discarded.
+        // Measured: `increment --major --prefix v` produced 0.0.0, unprefixed.
+        .action(async (commandOptions: VersionIncrementCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
 
         const controller = new VersionController()
@@ -82,8 +97,12 @@ export function createVersionCommand(program: Command) :Command {
         .command("reset")
         .alias("vr")
         .description("Reset the project version to initial state")
-        .action(async (args: string, commandOptions: VersionResetCliArgs) => {
-        const options = { ...program.opts(), ...commandOptions };
+        .action(async (commandOptions: VersionResetCliArgs) => {
+        // `reset` declares no options at all, so even with the signature fixed
+        // nothing would set the flag the controller dispatches on — the command
+        // would fall through to generateNewVersion and cut a version instead of
+        // resetting. The subcommand states its own intent.
+        const options = { ...program.opts(), ...commandOptions, reset: true };
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -93,16 +112,20 @@ export function createVersionCommand(program: Command) :Command {
     new Command()
         .command("list")
         .alias("vl")
-        .description("Check if a version string is valid")
-        .addArgument(new Argument("<version>", "Version string to validate"))
+        // The description and the argument were copy-pasted from `validate`:
+        // this command lists versions, and the controller reads options.list as
+        // a COUNT (`list === true ? 10 : parseInt(list)`). Left as-is it asked
+        // for a version string and then parsed it as a number.
+        .description("List recent versions (most recent first)")
+        .addArgument(new Argument("[count]", "How many versions to list (default 10)"))
         // .option('-r, --reverse', 'List versions in reverse order')
         // .option('-t, --tag', 'List versions with tags')
         // .option('-d, --date', 'List versions with dates')
         // .option('-s, --sort', 'Sort versions')
         // .option('-v, --verbose', 'Show detailed version information')
         // .option('-a, --all', 'Show all versions')
-        .action(async (args: string, commandOptions: VersionListCliArgs) => {
-        const options = { ...program.opts(), ...commandOptions };
+        .action(async (args: string | undefined, commandOptions: VersionListCliArgs) => {
+        const options = { ...program.opts(), ...commandOptions, list: args ?? true };
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -114,8 +137,12 @@ export function createVersionCommand(program: Command) :Command {
         .alias("vc")
         .description("Compare a specific version with the current/latest one")
         .option("--version <version>", "Version to compare against the latest")
-        .action(async (args: string, commandOptions: VersionCompareCliArgs) => {
-            const options = { ...program.opts(), ...commandOptions };
+        .action(async (commandOptions: VersionCompareCliArgs) => {
+            // The subcommand spells it --version; the controller dispatches on
+            // options.compare. Without the translation the flag landed in
+            // options.version, which the controller reads as "use this literal
+            // version" — so `compare` would have CUT a tag instead of comparing.
+            const options = { ...program.opts(), ...commandOptions, compare: (commandOptions as any).version };
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -132,8 +159,9 @@ export function createVersionCommand(program: Command) :Command {
         "-u, --update [version]",
         "Update version in project to specified value"
         )
-        .action(async (args: string, commandOptions: VersionProjectCliArgs) => {
-            const options = { ...program.opts(), ...commandOptions };
+        .action(async (commandOptions: VersionProjectCliArgs) => {
+            // --path is the subcommand's spelling of the controller's projectPath.
+            const options = { ...program.opts(), ...commandOptions, projectPath: (commandOptions as any).path };
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -146,7 +174,7 @@ export function createVersionCommand(program: Command) :Command {
         .description("Check if a version string is valid")
         .addArgument(new Argument("<version>", "Version string to validate"))
         .action(async (args: string, commandOptions: VersionValidateCliArgs) => {
-        const options = { ...program.opts(), ...commandOptions };
+        const options = { ...program.opts(), ...commandOptions, validate: args };
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -159,7 +187,7 @@ export function createVersionCommand(program: Command) :Command {
         .description("Revert the project to a specific version")
         .addArgument(new Argument("<version>", "Version to revert to"))
         .action(async (args: string, commandOptions: VersionRevertCliArgs) => {
-        const options = { ...program.opts(), ...commandOptions }
+        const options = { ...program.opts(), ...commandOptions, revert: args }
 
         const controller = new VersionController()
         await controller.handleVersionCommand(options)
@@ -172,7 +200,7 @@ export function createVersionCommand(program: Command) :Command {
         .option("--sync", "Sync versions with remote repository")
         .option("--push", "Push local changes and tags to remote")
         .option("--draft", "Create a draft release")
-        .action(async (args: string, commandOptions: VersionRemoteCliArgs) => {
+        .action(async (commandOptions: VersionRemoteCliArgs) => {
             const options = { ...program.opts(), ...commandOptions }
     
             const controller = new VersionController()

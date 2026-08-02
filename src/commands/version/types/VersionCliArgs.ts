@@ -15,7 +15,11 @@ export interface VersionCliArgs extends CliArgs {
     detect?: boolean;
     update?: string | boolean;
     build?: string
-    list?: boolean
+    // boolean = "list the default count"; string = an explicit count. The
+    // controller already reads it both ways (`list === true ? 10 :
+    // parseInt(list as string)`), so the `as string` cast there was covering for
+    // this declaration rather than for a real narrowing.
+    list?: boolean | string
     latest?: boolean
     tag?: boolean
     push?: boolean

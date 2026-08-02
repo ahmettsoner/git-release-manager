@@ -5,6 +5,11 @@ import { CommitCreateCliArgs } from "./types/CommitCreateCliArgs";
 import { CommitListCliArgs } from "./types/CommitListCliArgs";
 import { CommitAmendCliArgs } from "./types/CommitAmendCliArgs";
 
+// NONE of these subcommands declares a positional argument, so commander
+// invokes every action as (options, command). The previous signatures named the
+// FIRST parameter `args` and read the SECOND as the options — which is a Command
+// instance, so every flag was silently discarded: `commit create -m "..." -t feat`
+// reached the controller with no message and no type.
 export function createCommitCommand(program: Command) :Command {
 
     const commitProgram = program
@@ -28,7 +33,7 @@ export function createCommitCommand(program: Command) :Command {
         .addOption(new Option("--dry-run", "Show what would be committed without committing"))
         .addOption(new Option("--no-verify", "Skip pre-commit and commit-msg hooks"))
         .addOption(new Option("-i, --sign", "Sign the commit with a GPG key"))
-        .action(async (args: string, commandOptions: CommitCreateCliArgs) => {
+        .action(async (commandOptions: CommitCreateCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
 
         const config = await readConfig(options?.config, options.environment)
@@ -42,7 +47,7 @@ export function createCommitCommand(program: Command) :Command {
         .alias("l")
         .description("List recent commits with options to filter")
         .option("-c, --count <number>", "Number of commits to list")
-        .action(async (args: string, commandOptions: CommitListCliArgs) => {
+        .action(async (commandOptions: CommitListCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
 
         const config = await readConfig(options?.config, options.environment)
@@ -56,7 +61,7 @@ export function createCommitCommand(program: Command) :Command {
         .command("amend")
         .alias("a")
         .description("Amend the previous commit")
-        .action(async (args: string, commandOptions: CommitAmendCliArgs) => {
+        .action(async (commandOptions: CommitAmendCliArgs) => {
         const options = { ...program.opts(), ...commandOptions };
 
         const config = await readConfig(options?.config, options.environment)
