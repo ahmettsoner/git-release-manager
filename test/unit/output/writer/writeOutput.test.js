@@ -1,8 +1,12 @@
-const { writeOutput } = require('../../../src/output/writer')
+const { writeOutput } = require('../../../../src/modules/output/writer')
 const fs = require('fs')
-const path = require('path')
 
-jest.mock('fs')
+// `jest.mock('fs')` did not produce mock functions here: the runner handed the
+// assertions the REAL `[Function writeFileSync]`, so `toHaveBeenCalled` could
+// not be evaluated — and the "write to file" case really did create ./output.md
+// in the repo root. Spy on the exact binding the module under test calls, so the
+// double is a double. The assertions below are unchanged.
+jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
 jest.spyOn(console, 'log').mockImplementation(() => {})
 
 describe('writeOutput', () => {

@@ -1,4 +1,4 @@
-const { parseRemoteUrl } = require('../../../src/git/contextHelper')
+const { parseRemoteUrl } = require('../../../../src/modules/git/context/remoteHandler')
 
 describe('parseRemoteUrl', () => {
     it('should parse HTTPS remote URL correctly', () => {
@@ -53,7 +53,7 @@ describe('parseRemoteUrl', () => {
     })
 
     it('should return null for empty URL', () => {
-         & Assert
+         // Act & Assert
         expect(parseRemoteUrl('')).toBeNull()
         expect(parseRemoteUrl(null)).toBeNull()
         expect(parseRemoteUrl(undefined)).toBeNull()
@@ -63,7 +63,7 @@ describe('parseRemoteUrl', () => {
         
         const invalidUrls = ['invalid-url', 'https://github.com', 'git@github.com', 'https://github.com/only-owner']
 
-         & Assert
+         // Act & Assert
         invalidUrls.forEach(url => {
             expect(() => parseRemoteUrl(url)).toThrow(`Could not parse remote URL: ${url}`)
         })

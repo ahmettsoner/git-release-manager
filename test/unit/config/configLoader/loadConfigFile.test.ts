@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals'
 import * as fs from 'fs'
-import { loadConfigFile } from '../../../src/config/configLoader'
+import { loadConfigFile } from '../../../../src/config/configLoader'
 
 jest.mock('fs', () => ({
     promises: {

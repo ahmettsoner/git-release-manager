@@ -1,4 +1,4 @@
-const { enrichCommit } = require('../../../src/parsers/commit')
+const { enrichCommit } = require('../../../../src/modules/git/commits/index')
 
 describe('enrichCommit', () => {
     const mockConfig = {

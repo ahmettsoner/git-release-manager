@@ -1,4 +1,4 @@
-const { getGitHubProfileUrl } = require('../../../src/parsers/commit')
+const { getGitHubProfileUrl } = require('../../../../src/modules/git/commits/profileHandler')
 
 global.fetch = jest.fn()
 

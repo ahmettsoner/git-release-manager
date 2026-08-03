@@ -1,4 +1,4 @@
-const { summarizeContributors } = require('../../src/sections/index')
+const { summarizeContributors } = require('../../../src/modules/sections/summarizing')
 
 describe('summarizeContributors', () => {
     const mockContributors = [
@@ -55,10 +55,10 @@ describe('summarizeContributors', () => {
     })
 
     test('should throw error for invalid input', () => {
-         & Assert
-        expect(() => summarizeContributors(null, {})).toThrow('Invalid input: array must be an array')
-        expect(() => summarizeContributors(undefined, {})).toThrow('Invalid input: array must be an array')
-        expect(() => summarizeContributors('not-an-array', {})).toThrow('Invalid input: array must be an array')
+         // Act & Assert
+        expect(() => summarizeContributors(null, {})).toThrow('Invalid input: contributors must be an array')
+        expect(() => summarizeContributors(undefined, {})).toThrow('Invalid input: contributors must be an array')
+        expect(() => summarizeContributors('not-an-array', {})).toThrow('Invalid input: contributors must be an array')
     })
 
     test('should handle contributors without groups', () => {

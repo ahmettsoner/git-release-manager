@@ -1,4 +1,4 @@
-const { summarizeNotes } = require('../../src/sections/index')
+const { summarizeNotes } = require('../../../src/modules/sections/summarizing')
 
 describe('summarizeNotes', () => {
     const mockConfig = {
@@ -62,10 +62,10 @@ describe('summarizeNotes', () => {
     })
 
     test('should throw error for invalid input', () => {
-         & Assert
-        expect(() => summarizeNotes(null, mockConfig)).toThrow('Invalid input: array must be an array')
-        expect(() => summarizeNotes(undefined, mockConfig)).toThrow('Invalid input: array must be an array')
-        expect(() => summarizeNotes('not-an-array', mockConfig)).toThrow('Invalid input: array must be an array')
+         // Act & Assert
+        expect(() => summarizeNotes(null, mockConfig)).toThrow('Invalid input: notes must be an array')
+        expect(() => summarizeNotes(undefined, mockConfig)).toThrow('Invalid input: notes must be an array')
+        expect(() => summarizeNotes('not-an-array', mockConfig)).toThrow('Invalid input: notes must be an array')
     })
 
     test('should sort by order', () => {

@@ -73,8 +73,15 @@ export async function enrichCommit(commit: GitCommit, config: Config): Promise<C
     const processedIds = new Set(links.map(link => link.id))
     config.linkTypes.forEach(linkType => {
         if (linkType.sign) {
-            const signRegex = new RegExp(`\\${linkType.sign[0]}(\\d+)`)
+            // The `g` flag is load-bearing, not cosmetic. A non-global RegExp never
+            // advances `lastIndex`, so `exec` inside a while-loop returns the same
+            // match forever. The shipped default config declares linkTypes[0].sign
+            // = ["#"], so any commit message or body containing "#123" spun these
+            // two loops at 100% CPU and never returned. `lastIndex` is reset below
+            // because the same RegExp object drives both loops.
+            const signRegex = new RegExp(`\\${linkType.sign[0]}(\\d+)`, 'g')
             let signMatch
+            signRegex.lastIndex = 0
             while ((signMatch = signRegex.exec(linkDescription)) !== null) {
                 const matchedId = parseInt(signMatch[1], 10)
 
@@ -93,6 +100,7 @@ export async function enrichCommit(commit: GitCommit, config: Config): Promise<C
                 description = description?.replace(signMatch[0], '')?.trim() ?? null
             }
 
+            signRegex.lastIndex = 0
             while ((signMatch = signRegex.exec(commitMessage)) !== null) {
                 const matchedId = parseInt(signMatch[1], 10)
 
