@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import simpleGit, { SimpleGit } from 'simple-git'
 import { GitVersionManager } from './GitVersionManager'
@@ -165,9 +165,7 @@ export class ProjectVersionManager {
         // Path belirtilmemişse, mevcut dizinde desteklenen ilk proje dosyasını bul
         for (const { pattern, handler } of this.PROJECT_FILES) {
             if (pattern.includes('*')) {
-                // Wildcard içeren dosya isimleri için glob kullanılabilir
-                const glob = require('glob')
-                const files = glob.sync(pattern, { cwd: process.cwd() })
+                const files = this.matchInCwd(pattern)
                 if (files.length > 0) {
                     return {
                         filePath: join(process.cwd(), files[0]),
@@ -183,6 +181,37 @@ export class ProjectVersionManager {
         }
 
         throw new Error('No supported project file found in current directory')
+    }
+
+    // Match a single-segment wildcard pattern (e.g. `*.csproj`) against the
+    // working directory listing.
+    //
+    // This used to be `require('glob')`, and glob has never been a declared
+    // dependency: it only ever resolved through a devDependency that hoisted it
+    // (copyfiles, eslint, jest). A development checkout therefore ran this line
+    // fine while the PACKAGED engine — which carries `dependencies` alone —
+    // threw MODULE_NOT_FOUND on `grm version --detect` in any directory without
+    // a package.json. The working tree was not the engine.
+    //
+    // The result is sorted because readdir order is filesystem-dependent and
+    // `files[0]` below decides which project file wins; an unsorted pick makes
+    // the answer vary from box to box.
+    private matchInCwd(pattern: string): string[] {
+        const escape = (literal: string): string => literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const expression = new RegExp(`^${pattern.split('*').map(escape).join('[^/]*')}$`)
+
+        let entries: string[]
+        try {
+            entries = readdirSync(process.cwd())
+        } catch {
+            return []
+        }
+
+        // Dotfiles stay hidden unless the pattern asks for them — glob's own
+        // default, kept so the substitution does not widen what matches.
+        const wantsHidden = pattern.startsWith('.')
+
+        return entries.filter(name => (wantsHidden || !name.startsWith('.')) && expression.test(name)).sort()
     }
 
     detectProjectVersion(path?: string): ProjectVersion {
