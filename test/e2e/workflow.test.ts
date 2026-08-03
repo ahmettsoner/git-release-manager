@@ -83,7 +83,7 @@ describe('E2E: Complete Release Workflow', () => {
     //     expect(versionOutput).toContain('Version updated')
 
     //     // 6. Changelog oluştur
-    //     const changelogOutput = execSync('grm changelog --from HEAD~1', {
+    //     const changelogOutput = execSync('grm changelog generate --from HEAD~1', {
     //         cwd: PROJECT_DIR,
     //         encoding: 'utf8'
     //     })

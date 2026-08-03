@@ -30,7 +30,15 @@ describe('E2E: Branch merge operations', () => {
     })
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR)
+        // Own directories only — never the shared E2E_DIR. merge-happy and
+        // merge-error both live under .../branch/merge, jest runs them in
+        // parallel workers, and whichever finished first used to delete the
+        // other's working directory mid-run (`spawn git ENOENT`). The victim
+        // varied by run, which is what a race looks like from the report.
+        await cleanupTestProject(PROJECT_DIR)
+        // The bare remote is state too: left behind it already carries `main`,
+        // and the next run's push would be rejected as non-fast-forward.
+        await cleanupTestProject(REMOTE_DIR)
     })
 
     test('Merge a local branch into the current branch', async () => {
@@ -48,9 +56,17 @@ describe('E2E: Branch merge operations', () => {
         // Merge the feature branch
         execSync(`grm branch merge ${branchToMerge}`, { cwd: PROJECT_DIR })
 
-        // Verify the merge
+        // Verify the merge.
+        //
+        // `grm branch merge` passes --no-ff on purpose (BranchManager.ts), so
+        // HEAD is the MERGE commit and not the branch tip — this assertion used
+        // to demand the tip and pinned fast-forward semantics the product
+        // deliberately does not have. Both halves are asserted: the reachability
+        // check alone would also pass on a fast-forward, which is exactly the
+        // shape being ruled out.
         const log = await git.log()
-        expect(log.latest?.message).toBe('Commit on feature branch')
+        expect(log.latest?.message).toContain(`Merge branch '${branchToMerge}'`)
+        expect(log.all.map(entry => entry.message)).toContain('Commit on feature branch')
     })
 
     test('Merge a branch using remote/branch syntax into the current branch', async () => {
@@ -72,9 +88,11 @@ describe('E2E: Branch merge operations', () => {
         // Merge using origin/branch syntax by specifying the full remote branch path
         execSync(`grm branch merge origin/${branchToMerge}`, { cwd: PROJECT_DIR })
 
-        // Verify the merge
+        // Verify the merge — --no-ff again, and git names a remote-tracking
+        // merge differently from a local one.
         const log = await git.log()
-        expect(log.latest?.message).toBe('Commit on syntax feature branch')
+        expect(log.latest?.message).toContain(`Merge remote-tracking branch 'origin/${branchToMerge}'`)
+        expect(log.all.map(entry => entry.message)).toContain('Commit on syntax feature branch')
     })
 
     test('Squash merge a local branch into the current branch', async () => {

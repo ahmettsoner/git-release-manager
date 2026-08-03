@@ -20,7 +20,7 @@ describe('E2E: Branch create operations', () => {
     });
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     })
 
     test('Create a new branch', async () => {

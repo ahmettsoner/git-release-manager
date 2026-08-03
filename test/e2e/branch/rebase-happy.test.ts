@@ -12,7 +12,7 @@ describe('E2E: Branch rebase operations', () => {
     const baseBranch = 'main';
 
     beforeEach(async () => {
-        await cleanupTestProject(E2E_DIR);
+        await cleanupTestProject(PROJECT_DIR);
         await createTestProject(PROJECT_DIR, { withGit: true });
 
         // Remote setup
@@ -31,7 +31,7 @@ describe('E2E: Branch rebase operations', () => {
     });
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR);
+        await cleanupTestProject(PROJECT_DIR);
     });
 
     test('Rebase a local branch onto the current branch', async () => {

@@ -25,7 +25,7 @@ describe('E2E: Branch switch operations', () => {
     })
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     })
 
     test('Switch to an existing branch', async () => {

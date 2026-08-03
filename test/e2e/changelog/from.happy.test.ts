@@ -41,7 +41,7 @@ describe('E2E: Changelog command with --from flag', () => {
         const commitLog = await git.log()
         const initialCommitHash = commitLog.all[commitLog.all.length - 1].hash
 
-        const changelogOutput = execSync(`grm changelog --from ${initialCommitHash}`, {
+        const changelogOutput = execSync(`grm changelog generate --from ${initialCommitHash}`, {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         })
@@ -67,7 +67,7 @@ describe('E2E: Changelog command with --from flag', () => {
             encoding: 'utf8',
         })
 
-        const changelogOutput = execSync(`grm changelog --from ${initialCommitHash}`, {
+        const changelogOutput = execSync(`grm changelog generate --from ${initialCommitHash}`, {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         })
@@ -80,7 +80,7 @@ describe('E2E: Changelog command with --from flag', () => {
     // test('Generate changelog from specific tag', async () => {
     //     await git.checkout('v1.0.0');
 
-    //     const changelogOutput = execSync(`grm changelog --from v1.0.0`, {
+    //     const changelogOutput = execSync(`grm changelog generate --from v1.0.0`, {
     //         cwd: PROJECT_DIR,
     //         encoding: 'utf8'
     //     });
@@ -91,7 +91,7 @@ describe('E2E: Changelog command with --from flag', () => {
 
     // test('Generate changelog for invalid --from reference', async () => {
     //     expect(() => {
-    //         execSync(`grm changelog --from invalidReference`, {
+    //         execSync(`grm changelog generate --from invalidReference`, {
     //             cwd: PROJECT_DIR,
     //             encoding: 'utf8'
     //         });
@@ -113,7 +113,7 @@ describe('E2E: Changelog command with --from flag', () => {
     //     execSync('git commit -m "docs: update documentation"', { cwd: PROJECT_DIR });
     //     await git.tag(['v1.2.0']);
 
-    //     const changelogOutput = execSync(`grm changelog --from v1.0.0`, {
+    //     const changelogOutput = execSync(`grm changelog generate --from v1.0.0`, {
     //         cwd: PROJECT_DIR,
     //         encoding: 'utf8'
     //     });

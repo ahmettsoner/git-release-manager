@@ -24,7 +24,7 @@ describe('E2E: Branch delete operations', () => {
   });
 
   afterAll(async () => {
-    await cleanupTestProject(E2E_DIR);
+    await cleanupTestProject(PROJECT_DIR);
   });
 
   test('Delete a local branch', async () => {

@@ -1,4 +1,4 @@
-[![npm version](https://badge.fury.io/js/vereasy.svg)](https://www.npmjs.com/package/vereasy)
+[![npm version](https://badge.fury.io/js/git-release-manager.svg)](https://www.npmjs.com/package/git-release-manager)
 
 
 | Faz                 | Release Name | Channel                       | Açıklama                                                                                              | Sürüm Formatı    | Branch                |
