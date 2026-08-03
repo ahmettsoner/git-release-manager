@@ -32,7 +32,7 @@ describe('E2E: Iteration Scenario Iteration 2', () => {
 
         const expectedVersion = 'v1.1.0-dev.1'
 
-        const versionOutput = execSync('grm flow phase dev', {
+        const versionOutput = execSync('grm flow phase dev --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -49,7 +49,11 @@ describe('E2E: Iteration Scenario Iteration 2', () => {
 
         const expectedVersion = '1.1.0'
 
-        const versionOutput = execSync('grm flow tag latest dev --print=base', {
+        // `tag latest` is stable-only without a channel — the pattern
+        // listBranchTags builds excludes prereleases — so asking for the dev
+        // tag has to name the channel. The axis existed on the module and
+        // reached no CLI until now.
+        const versionOutput = execSync('grm flow tag latest dev --channel dev --print=base', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -66,7 +70,7 @@ describe('E2E: Iteration Scenario Iteration 2', () => {
 
         const expectedVersion = 'v1.0.0-alpha.1'
 
-        const versionOutput = execSync('grm flow phase qa alpha v1.0.0', {
+        const versionOutput = execSync('grm flow phase qa alpha v1.0.0 --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -82,7 +86,7 @@ describe('E2E: Iteration Scenario Iteration 2', () => {
 
         const expectedVersion = 'v1.0.0-alpha.2'
 
-        const versionOutput = execSync('grm flow phase qa alpha v1.0.0', {
+        const versionOutput = execSync('grm flow phase qa alpha v1.0.0 --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -99,7 +103,7 @@ describe('E2E: Iteration Scenario Iteration 2', () => {
 
         const expectedVersion = 'v1.0.0-alpha.3'
 
-        const versionOutput = execSync('grm flow phase qa alpha v1.0.0', {
+        const versionOutput = execSync('grm flow phase qa alpha v1.0.0 --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()

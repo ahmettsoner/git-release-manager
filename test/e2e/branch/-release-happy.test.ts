@@ -29,18 +29,25 @@ describe('E2E: Branch release operations', () => {
     })
 
     test('Release a branch', async () => {
-        const branchToRelease = 'feature-branch'
-        const releaseBranch = `${branchToRelease}` // Updated to match actual naming pattern
+        const releaseVersion = '1.0.0'
+        const releaseBranch = `release/${releaseVersion}`
 
-        // Use the CLI command to release the branch
-        execSync(`grm branch --release ${branchToRelease}`, { cwd: PROJECT_DIR })
+        // Use the CLI command to cut a release branch — typed subcommand, not
+        // the commented-out `branch --release` flag.
+        execSync(`grm branch create release ${releaseVersion}`, { cwd: PROJECT_DIR })
 
-        // Verify that the release branch was created
+        // Verify that the release branch was created.
+        //
+        // This assertion used to name `feature-branch` — the branch beforeAll
+        // had ALREADY created — with a comment claiming it matched the naming
+        // pattern. It did not: the command produces `release/<version>`, and
+        // asserting the pre-existing branch made the test pass even if the
+        // command did nothing at all.
         const branches = await git.branchLocal()
         expect(branches.all).toContain(releaseBranch)
 
-        // Optionally verify content in release branch
-        await git.checkout(releaseBranch)
+        // …and the cut carries the work it was cut from
+        expect(await git.revparse(['--abbrev-ref', 'HEAD'])).toBe(releaseBranch)
         const content = fs.readFileSync(join(PROJECT_DIR, 'feature.txt'), 'utf8')
         expect(content).toContain('New feature content')
     })

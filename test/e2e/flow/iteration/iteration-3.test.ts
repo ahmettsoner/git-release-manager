@@ -33,7 +33,7 @@ describe('E2E: Iteration Scenario Iteration 3', () => {
 
         const expectedVersion = 'v1.0.0-beta.1'
 
-        const versionOutput = execSync('grm flow phase stage beta v1.0.0', {
+        const versionOutput = execSync('grm flow phase stage beta v1.0.0 --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -51,7 +51,7 @@ describe('E2E: Iteration Scenario Iteration 3', () => {
 
         const expectedVersion = 'v1.0.0-beta.2'
 
-        const versionOutput = execSync('grm flow phase stage beta v1.0.0', {
+        const versionOutput = execSync('grm flow phase stage beta v1.0.0 --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()
@@ -70,7 +70,7 @@ describe('E2E: Iteration Scenario Iteration 3', () => {
 
         const expectedVersion = 'v1.0.0-beta.3'
 
-        const versionOutput = execSync('grm flow phase stage beta v1.0.0', {
+        const versionOutput = execSync('grm flow phase stage beta v1.0.0 --next', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         }).trim()

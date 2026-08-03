@@ -72,7 +72,7 @@ describe('E2E: Branch finish operations', () => {
         console.log('Checked out to develop branch')
 
         // Use the CLI command to finish the branch
-        execSync(`grm branch --finish feature/test-feature --config ${configPath}`, {
+        execSync(`grm branch finish feature/test-feature --config ${configPath}`, {
             cwd: PROJECT_DIR,
         })
 
@@ -93,7 +93,7 @@ describe('E2E: Branch finish operations', () => {
         await git.commit('Add release notes')
 
         await git.checkout('main')
-        execSync(`grm branch --finish release/v1.0.0 --config ${configPath}`, { cwd: PROJECT_DIR })
+        execSync(`grm branch finish release/v1.0.0 --config ${configPath}`, { cwd: PROJECT_DIR })
 
         const branches = await git.branchLocal()
         expect(branches.all).not.toContain('release/v1.0.0')
@@ -102,22 +102,19 @@ describe('E2E: Branch finish operations', () => {
         expect(tags.all).toContain('v1.0.0')
     })
 
-    // The version here must NOT be the one the previous test already tagged.
-    // This test asserts that a branch named WITHOUT the configured tagPrefix
-    // ("release/2.0.0") still produces a prefixed tag ("v2.0.0"). Asserting
-    // v1.0.0 — as this test used to — proved nothing: the previous test had
-    // already created that exact tag from an ALREADY-prefixed branch name, so
-    // the assertion passed on someone else's tag whether auto-prefixing worked
-    // or not. It also made the run impossible: `git tag -a v1.0.0` on a repo
-    // that already has v1.0.0 is a hard error.
+    // The property under test is that a branch spelled WITHOUT the prefix still
+    // produces the prefixed tag. It used to use 1.0.0 — the same version the
+    // case above finishes — and every case in this file shares one PROJECT_DIR,
+    // so the second run hit `fatal: tag 'v1.0.0' already exists`. That refusal
+    // is the product being right; reusing the version was the test being wrong.
     test('Finish a release branch with tag creation with auto prefix', async () => {
         await git.checkoutLocalBranch('release/2.0.0')
-        fs.writeFileSync(join(PROJECT_DIR, 'release.txt'), 'Release branch content for 2.0.0\n')
+        fs.writeFileSync(join(PROJECT_DIR, 'release.txt'), 'Release branch content\n')
         await git.add('.')
         await git.commit('Add release notes')
 
         await git.checkout('main')
-        execSync(`grm branch --finish release/2.0.0 --config ${configPath}`, { cwd: PROJECT_DIR })
+        execSync(`grm branch finish release/2.0.0 --config ${configPath}`, { cwd: PROJECT_DIR })
 
         const branches = await git.branchLocal()
         expect(branches.all).not.toContain('release/2.0.0')
@@ -133,7 +130,7 @@ describe('E2E: Branch finish operations', () => {
         await git.commit('Fix urgent issue')
 
         await git.checkout('main')
-        execSync(`grm branch --finish hotfix/urgent-fix --config ${configPath}`, { cwd: PROJECT_DIR })
+        execSync(`grm branch finish hotfix/urgent-fix --config ${configPath}`, { cwd: PROJECT_DIR })
 
         const branches = await git.branchLocal()
         expect(branches.all).not.toContain('hotfix/urgent-fix')
@@ -150,7 +147,7 @@ describe('E2E: Branch finish operations', () => {
         await git.commit('Add current hotfix')
 
         // Run the command without specifying a branch name
-        execSync(`grm branch --finish --config ${configPath}`, { cwd: PROJECT_DIR })
+        execSync(`grm branch finish --config ${configPath}`, { cwd: PROJECT_DIR })
 
         const branches = await git.branchLocal()
         expect(branches.all).not.toContain('hotfix/current-hotfix')

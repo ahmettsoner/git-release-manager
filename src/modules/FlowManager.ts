@@ -200,7 +200,13 @@ export class FlowManager {
 
     async latestTagVersion(branch: string, channel: string | null = null, baseVersion: string | null = null, includePrerelease: boolean = false): Promise<string> {
         try {
-            const channelVersion = channel ? `${baseVersion}-${channel}` : baseVersion;
+            // The channel-qualified prefix only exists once there IS a base
+            // version to qualify. Written as `channel ? ...` it interpolated a
+            // null into the string — a caller asking for the latest `dev` tag
+            // without naming a base filtered every tag against the literal
+            // "null-dev" and got nothing back. Channel alone is already honoured
+            // one line down: listBranchTags builds the pattern from it.
+            const channelVersion = baseVersion ? (channel ? `${baseVersion}-${channel}` : baseVersion) : null;
 
             const tagList = await this.listBranchTags(branch, channel, includePrerelease);
     

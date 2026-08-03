@@ -32,8 +32,9 @@ describe('E2E: Branch hotfix operations', () => {
         const hotfixBranch = 'urgent-fix'
         const fullBranchName = `hotfix/${hotfixBranch}`
 
-        // Use the CLI command to create a hotfix branch
-        execSync(`grm branch --hotfix ${hotfixBranch}`, { cwd: PROJECT_DIR })
+        // Use the CLI command to create a hotfix branch — typed subcommand, not
+        // the commented-out `branch --hotfix` flag.
+        execSync(`grm branch create hotfix ${hotfixBranch}`, { cwd: PROJECT_DIR })
 
         // Verify the hotfix branch exists
         const branches = await git.branchLocal()

@@ -13,6 +13,12 @@ describe('E2E: Branch create operations', () => {
 
     beforeAll(async () => {
         await createTestProject(PROJECT_DIR, { withGit: true });
+        // The bare remote is state too — clean it wherever the project is
+        // cleaned. `init` over an existing directory is a no-op, so skipping
+        // this silently REUSES the previous run's remote. See rebase-happy,
+        // where the same omission produced a `[rejected] (fetch first)` that
+        // reads like a product defect.
+        await cleanupTestProject(REMOTE_DIR);
         await fs.promises.mkdir(REMOTE_DIR, { recursive: true });
         simpleGit().cwd(REMOTE_DIR).init(true);
         git = simpleGit(PROJECT_DIR);
@@ -20,7 +26,8 @@ describe('E2E: Branch create operations', () => {
     });
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR)
+        await cleanupTestProject(PROJECT_DIR)
+        await cleanupTestProject(REMOTE_DIR)
     })
 
     test('Create a new branch', async () => {

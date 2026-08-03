@@ -15,7 +15,12 @@ describe('E2E: Branch delete operations', () => {
       withGit: true
     });
 
-    // Remote setup
+    // Remote setup. The bare remote is state too — clean it wherever the
+    // project is cleaned. `init --bare` over an existing directory is a no-op,
+    // so skipping this silently REUSES the previous run's remote. See
+    // rebase-happy, where the same omission produced a `[rejected] (fetch
+    // first)` that reads like a product defect.
+    await cleanupTestProject(REMOTE_DIR);
     await fs.promises.mkdir(REMOTE_DIR, { recursive: true });
     simpleGit().cwd(REMOTE_DIR).init(true, ['--bare']);
     
@@ -24,7 +29,8 @@ describe('E2E: Branch delete operations', () => {
   });
 
   afterAll(async () => {
-    await cleanupTestProject(E2E_DIR);
+    await cleanupTestProject(PROJECT_DIR);
+    await cleanupTestProject(REMOTE_DIR);
   });
 
   test('Delete a local branch', async () => {

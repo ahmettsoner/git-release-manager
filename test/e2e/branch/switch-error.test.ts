@@ -19,7 +19,7 @@ describe('E2E: Branch switch error handling', () => {
     })
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR)
+        await cleanupTestProject(PROJECT_DIR)
     })
 
     test('Error when branch name is not provided for switch', () => {

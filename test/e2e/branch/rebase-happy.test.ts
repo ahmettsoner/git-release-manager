@@ -12,10 +12,22 @@ describe('E2E: Branch rebase operations', () => {
     const baseBranch = 'main';
 
     beforeEach(async () => {
-        await cleanupTestProject(E2E_DIR);
+        await cleanupTestProject(PROJECT_DIR);
         await createTestProject(PROJECT_DIR, { withGit: true });
 
-        // Remote setup
+        // Remote setup.
+        //
+        // The bare remote is state too, and it has to be cleaned wherever the
+        // project is. Left in place it still carries the PREVIOUS run's `main`,
+        // while the project directory above was just recreated from scratch —
+        // so the push below offers an unrelated history and git refuses it as
+        // non-fast-forward. Measured: this test failed identically on two
+        // consecutive runs with `[rejected] (fetch first)`, which reads like a
+        // product defect and is not one.
+        //
+        // `init --bare` over an existing directory is a no-op, so creating the
+        // remote without removing it first silently REUSES the old one.
+        await cleanupTestProject(REMOTE_DIR);
         await fs.promises.mkdir(REMOTE_DIR, { recursive: true });
         simpleGit().cwd(REMOTE_DIR).init(true, ['--bare']);
 
@@ -31,7 +43,9 @@ describe('E2E: Branch rebase operations', () => {
     });
 
     afterAll(async () => {
-        await cleanupTestProject(E2E_DIR);
+        await cleanupTestProject(PROJECT_DIR);
+        // Leave no remote behind either — see the note in beforeEach.
+        await cleanupTestProject(REMOTE_DIR);
     });
 
     test('Rebase a local branch onto the current branch', async () => {

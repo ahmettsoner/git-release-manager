@@ -1,6 +1,8 @@
 import { BranchCliArgs } from '../../commands/branch/types/BranchCliArgs'
 import { BranchCreateCliArgs } from '../../commands/branch/types/BranchCreateCliArgs'
 import { BranchDeleteCliArgs } from '../../commands/branch/types/BranchDeleteCliArgs'
+import { BranchFinishCliArgs } from '../../commands/branch/types/BranchFinishCliArgs'
+import { BranchSyncCliArgs } from '../../commands/branch/types/BranchSyncCliArgs'
 import { BranchListCliArgs } from '../../commands/branch/types/BranchListCliArgs'
 import { BranchMergeCliArgs } from '../../commands/branch/types/BranchMergeCliArgs'
 import { BranchProtectCliArgs } from '../../commands/branch/types/BranchProtectCliArgs'
@@ -104,6 +106,32 @@ export class BranchController {
             process.exit(1)
         }
     }
+    // finish and sync were implemented on BranchManager and reachable from
+    // nothing: no handler here, no name in the CLI. The only surviving witness
+    // was the e2e suite, calling a `branch --finish` / `--sync` flag surface
+    // that lives commented out in commands/branch/command.ts.
+    async handleFinishCommand(options: BranchFinishCliArgs): Promise<void> {
+        try {
+            const config = await readConfig(options.config, options.environment)
+            // The name is optional on purpose — finishBranch falls back to the
+            // current branch, which is the common case for a flow tool.
+            await this.branchManager.finishBranch(config, options.name, options.push)
+        } catch (error) {
+            console.error('Error:', error instanceof Error ? error.message : String(error))
+            process.exit(1)
+        }
+    }
+
+    async handleSyncCommand(options: BranchSyncCliArgs): Promise<void> {
+        try {
+            const config = await readConfig(options.config, options.environment)
+            await this.branchManager.syncBranch(config, options.push)
+        } catch (error) {
+            console.error('Error:', error instanceof Error ? error.message : String(error))
+            process.exit(1)
+        }
+    }
+
     async handleListCommand(options: BranchListCliArgs): Promise<void> {
         try {
             const config = await readConfig(options.config, options.environment);
