@@ -8,6 +8,8 @@ import { BranchProtectCliArgs } from './types/BranchProtectCliArgs'
 import { BranchUnProtectCliArgs } from './types/BranchUnProtectCliArgs'
 import { BranchRebaseCliArgs } from './types/BranchRebaseCliArgs'
 import { BranchListCliArgs } from './types/BranchListCliArgs'
+import { BranchFinishCliArgs } from './types/BranchFinishCliArgs'
+import { BranchSyncCliArgs } from './types/BranchSyncCliArgs'
 
 const branchTypes = [
     { name: 'release', prefix: 'release/' },
@@ -200,6 +202,35 @@ export async function createBranchCommand(program: Command): Promise<Command> {
                 options.name = args
                 const controller = new BranchController()
                 await controller.handleUnProtectCommand(options)
+            })
+    )
+
+    programBranch.addCommand(
+        new Command()
+            .command('finish')
+            .alias('f')
+            .description('Finish a feature/release/hotfix branch: merge it into its base branches, tag and clean up per branchStrategies')
+            .argument('[name]', 'Optional: Name of the branch to finish. If omitted, the current branch is finished')
+            .addOption(new Option('--push', 'Push the resulting merges and tags to the remote'))
+            .action(async (args: string, commandOptions: BranchFinishCliArgs) => {
+                const options = { ...program.opts(), ...commandOptions }
+                options.name = args
+
+                const controller = new BranchController()
+                await controller.handleFinishCommand(options)
+            })
+    )
+
+    programBranch.addCommand(
+        new Command()
+            .command('sync')
+            .description('Rebase the current branch onto its remote counterpart')
+            .addOption(new Option('--push', 'Push the rebased branch back to the remote'))
+            .action(async (commandOptions: BranchSyncCliArgs) => {
+                const options = { ...program.opts(), ...commandOptions }
+
+                const controller = new BranchController()
+                await controller.handleSyncCommand(options)
             })
     )
 

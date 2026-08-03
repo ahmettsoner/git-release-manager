@@ -51,7 +51,7 @@ describe('E2E: Complete Release Workflow', () => {
 
     test('Complete release workflow', async () => {
     //     // 1. Feature branch oluştur
-    //     execSync('grm branch --feature new-feature', { cwd: PROJECT_DIR })
+    //     execSync('grm branch create feature new-feature', { cwd: PROJECT_DIR })
 
     //     // 2. Ensure src directory exists and make changes to project files
     //     const srcDir = join(PROJECT_DIR, 'src')
@@ -70,7 +70,7 @@ describe('E2E: Complete Release Workflow', () => {
     //     await git.commit('feat: add new feature')
 
     //     // 4. PR oluştur ve merge et
-    //     // execSync('grm branch --feature new-feature', { cwd: PROJECT_DIR })
+    //     // execSync('grm branch create feature new-feature', { cwd: PROJECT_DIR })
     //     // PR merge simulasyonu
     //     await git.checkout('main')
     //     await git.merge(['feature/new-feature'])

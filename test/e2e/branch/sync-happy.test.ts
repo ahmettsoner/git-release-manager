@@ -39,7 +39,7 @@ describe('E2E: Branch sync operations', () => {
         await git.commit('Local commit on main')
 
         // Use the CLI command to sync the branch
-        execSync('grm branch --sync', {
+        execSync('grm branch sync', {
             cwd: PROJECT_DIR,
             encoding: 'utf8',
         })
