@@ -32,8 +32,10 @@ describe('E2E: Branch feature operations', () => {
     const featureBranch = 'login';
     const fullBranchName = `feature/${featureBranch}`;
     
-    // Use the CLI command to create a feature branch
-    execSync(`grm branch --feature ${featureBranch}`, { cwd: PROJECT_DIR });
+    // Use the CLI command to create a feature branch. The flag surface
+    // (`branch --feature`) is commented out in commands/branch/command.ts; the
+    // live one is a typed subcommand built from `branchTypes`.
+    execSync(`grm branch create feature ${featureBranch}`, { cwd: PROJECT_DIR });
   
     // Verify the feature branch exists
     const branches = await git.branchLocal();
