@@ -8,6 +8,31 @@ module.exports = {
     // passed under --runInBand. A timeout that fires on load does not measure
     // the code under test; it measures the machine.
     testTimeout: 60000,
+    // SERIAL, and the timeout above is not what makes it necessary.
+    //
+    // Raising the timeout addressed one symptom — cases that were merely slow
+    // under load. It cannot address the other one: these suites share fixture
+    // directories, and setup begins with `rm -rf` (projectSetup.freshDirectory).
+    // A worker running case A deletes the directory a concurrently-running
+    // worker is CHDIR'd into, and that worker's next git call dies with "fatal:
+    // Unable to read current working directory". No timeout reaches that.
+    //
+    // Measured 2026-08-03 on one machine, same commit, back to back:
+    //   jest              41 failed, 183 tests collected
+    //   jest --runInBand  0 failed, 192 tests collected, 63/63 suites
+    //
+    // Note the SECOND number, which is the one that matters. The parallel run
+    // did not merely go red — it reported a smaller POPULATION, because workers
+    // died carrying their remaining cases with them. A green parallel run would
+    // therefore have been green over nine tests that never executed, and
+    // nothing in the output would have said so. That is the failure mode
+    // collection-parity.test.ts exists to prevent at the file level, arriving
+    // here through the scheduler instead.
+    //
+    // The real fix is per-case fixture isolation (a unique directory per test).
+    // Until that lands, parallelism is not an optimisation available to this
+    // suite, and pretending otherwise costs correctness of the seal itself.
+    maxWorkers: 1,
     testEnvironment: 'node',
     // Both extensions, deliberately. This pattern used to read `*.test.ts` only,
     // while the entire `test/unit/` tree is `.js` — so 24 files sat on disk that
