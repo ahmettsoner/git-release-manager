@@ -373,6 +373,35 @@ describe('FlowController', () => {
         })
     })
 
+    describe('F12 a branch that does not exist is refused, never answered', () => {
+        it('a phase whose branch is missing refuses instead of inventing v0.0.1', async () => {
+            // Every tag walk filters on `merge-base --is-ancestor <tag> <branch>`,
+            // which simply FAILS for a branch that is not there — so no tag is
+            // reachable, the baseline falls to 0.0.0, and the phase confidently
+            // answers v0.0.1 for a line it cannot see. Measured in a
+            // `clone --branch dev` where main existed only as a tracking ref.
+            const f = new FlowController(
+                cfg({ phases: { prod: { branch: 'nosuchbranch', mergeFrom: 'dev' } } }), root)
+            await expect(f.nextVersion(f.phase('prod'))).rejects.toThrow(/does not exist in this repository/)
+        })
+
+        it('a route target that is missing refuses instead of reading as already-current', async () => {
+            // count() maps a failed rev-list to 0, which is indistinguishable from
+            // "the target already carries it".
+            const f = new FlowController(
+                cfg({ phases: PHASES, routes: { r: { from: 'main', into: ['ghost'] } } }), root)
+            await expect(f.syncRoute('r')).rejects.toThrow(/the merge target 'ghost' does not exist/)
+        })
+
+        it('a remote-tracking ref is not enough', async () => {
+            // The exact shape of the clone: refs/remotes/origin/x exists, the local
+            // branch does not.
+            git('update-ref', 'refs/remotes/origin/tracked', 'main')
+            const f = new FlowController(cfg({ phases: { p: { branch: 'tracked' } } }), root)
+            await expect(f.nextVersion(f.phase('p'))).rejects.toThrow(/does not exist/)
+        })
+    })
+
     describe('F11 who holds the target decides where the merge happens', () => {
         const wt = { worktree: { enabled: true, dir: '.grm/wt' }, phases: PHASES }
 

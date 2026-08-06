@@ -96,6 +96,31 @@ export class FlowController {
         return p
     }
 
+    /**
+     * The phase's branch must EXIST before any question about it means anything.
+     *
+     * 🔴 WITHOUT THIS A MISSING BRANCH ANSWERS A VERSION. Every tag walk filters
+     * on `merge-base --is-ancestor <tag> <branch>`, which simply fails for a
+     * branch that is not there — so no tag is reachable, the baseline falls to
+     * 0.0.0, and the phase confidently reports `v0.0.1` for a line it cannot see.
+     * Measured 2026-08-06 in a `git clone --branch dev` of a repository at v1.3.0:
+     * `main` existed only as a remote-tracking ref, and `flow next prod` answered
+     * v0.0.1 while the sibling driver answered v1.0.0. A number that names nothing
+     * is worse than a refusal, because a caller substitutes it into a tag.
+     */
+    private async assertBranch(branch: string, role: string): Promise<void> {
+        const ok = await this.git
+            .raw(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`])
+            .then(out => String(out).trim() !== "")
+            .catch(() => false)
+        if (!ok) {
+            throw new Error(
+                `${role} '${branch}' does not exist in this repository ` +
+                `(a remote-tracking ref is not enough — create the local branch).`
+            )
+        }
+    }
+
     private prefixOf(p: FlowPhase): string {
         return p.prefix ?? this.config?.tag?.prefix ?? ""
     }
@@ -187,6 +212,7 @@ export class FlowController {
      * channel counter never bumps the core again.
      */
     async nextVersion(p: FlowPhase, at?: string): Promise<{ version: string; current: string; why?: string }> {
+        await this.assertBranch(p.branch, "the phase's branch")
         const prefix = this.prefixOf(p)
         const tags = await this.lineTags(p)
         const core = (t: string) => t.slice(prefix.length)
@@ -396,6 +422,12 @@ export class FlowController {
     private async mergeInto(
         target: string, source: string, strategy: "no-ff" | "ff", label: string
     ): Promise<string> {
+        // Both ends must exist. `rev-list --count a..b` FAILS for a missing ref and
+        // count() maps a failure to 0, which reads as "nothing to merge" — so a
+        // route pointing at a branch that is not there would be reported as
+        // skipped-because-already-current.
+        await this.assertBranch(target, "the merge target")
+        await this.assertBranch(source, "the merge source")
         const ahead = await this.count(`${target}..${source}`)
         if (ahead === 0) return ""
 
