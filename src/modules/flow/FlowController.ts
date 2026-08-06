@@ -4,7 +4,7 @@ import semver from 'semver'
 import simpleGit, { SimpleGit } from 'simple-git'
 
 import { Config } from '../../config/types/Config'
-import { FlowPhase } from '../../config/types/Flow'
+import { FlowPhase, FlowRoute } from '../../config/types/Flow'
 import { GitCommit } from '../git/types/GitCommit'
 import { deriveBump, explainBump } from '../version/BumpDeriver'
 
@@ -60,6 +60,8 @@ export interface FlowPlan {
     willTag: boolean
     willDeleteSource: boolean
     mergeStrategy: "no-ff" | "ff"
+    /** Branches the target is merged back into; empty means a one-way promotion. */
+    backMerge?: string[]
     worktree?: string
 }
 
@@ -258,7 +260,10 @@ export class FlowController {
      *
      * `keep: true` leaves it for inspection — of the run that just happened. The
      * next run reclaims it (see reclaimWorktrees), because `keep` is a debugging
-     * aid and not a licence to hoard checkouts.
+     * aid and not a licence to hoard checkouts. With back-merges or routes in the
+     * same run, that means the LAST merge's worktree is the one left standing:
+     * each merge reclaims the leftovers it finds before starting. Bounded on
+     * purpose — the alternative is one full checkout per branch, kept forever.
      *
      * `worktree remove` can refuse (a lock, a file it cannot delete), and a
      * refusal that leaves the directory behind is exactly the accumulation this
@@ -360,6 +365,7 @@ export class FlowController {
             willTag: p.tag !== false,
             willDeleteSource: p.deleteSource === true,
             mergeStrategy: this.strategyOf(p),
+            backMerge: p.backMerge ?? [],
             worktree: this.config?.flow?.worktree?.enabled ? this.worktreeDir(name) : undefined,
         }
     }
@@ -376,11 +382,172 @@ export class FlowController {
     }
 
     /**
+     * mergeInto — carry `source` into `target`, and move `target`'s ref.
+     *
+     * THE ONE MECHANISM. A promotion, a back-merge and a route are the same act
+     * with different names, and writing them three times is how they drift: the
+     * promotion would keep its worktree isolation and its expected-value
+     * update-ref while a back-merge quietly did a `checkout` in the shared tree.
+     * Every caller gets both properties or neither.
+     *
+     * Returns the merge commit, or "" when there was nothing to merge — the
+     * callers treat "nothing to do" differently, so this does not decide it.
+     */
+    private async mergeInto(
+        target: string, source: string, strategy: "no-ff" | "ff", label: string
+    ): Promise<string> {
+        const ahead = await this.count(`${target}..${source}`)
+        if (ahead === 0) return ""
+
+        const useWorktree = this.config?.flow?.worktree?.enabled === true
+        let workGit: SimpleGit = this.git
+        let createdDir = ""
+        // The branch to return to when this merge did not happen in a worktree.
+        let restoreTo = ""
+        try {
+            if (!useWorktree) {
+                // ── WITHOUT A WORKTREE THE TARGET HAS TO BE CHECKED OUT ──
+                //
+                // `git merge <source>` merges into HEAD, so merging into a branch
+                // you are not standing on is not a merge at all: with HEAD on main
+                // and the target dev, `merge main` answers "Already up to date",
+                // dev's ref never moves, and the caller is told it succeeded.
+                // Measured 2026-08-06 — five cases of the back-merge and route
+                // suites failed exactly here, and the promotion path had hidden it
+                // because its target was always the branch you were on.
+                const head = (await this.git.raw(["rev-parse", "--abbrev-ref", "HEAD"])).trim()
+                if (head !== target) {
+                    // A checkout across a dirty tree either refuses or carries the
+                    // changes onto the other branch. Neither belongs in a
+                    // promotion, so it is refused by name — and this is the reason
+                    // `worktree.enabled` exists.
+                    const dirty = (await this.git.raw(["status", "--porcelain", "--untracked-files=no"])).trim()
+                    if (dirty) {
+                        throw new Error(
+                            `${target} is not checked out and the tree is not clean, so it cannot be ` +
+                            `checked out to merge ${source} into it. Enable flow.worktree, or clean the tree.`
+                        )
+                    }
+                    await this.git.raw(["checkout", target])
+                    restoreTo = head
+                }
+            }
+            if (useWorktree) {
+                const wtDir = this.worktreeDir(label)
+                await this.reclaimWorktrees(wtDir)
+                mkdirSync(join(wtDir, ".."), { recursive: true })
+                // DETACHED, because git refuses the same branch in two worktrees
+                // and the target is very often checked out where you are standing.
+                await this.git.raw(["worktree", "add", "--detach", wtDir, target])
+                createdDir = wtDir
+                mkdirSync(join(wtDir, ".grm-flow"), { recursive: true })
+                writeFileSync(join(wtDir, ".grm-flow", "owner"), OWNER_TOKEN + "\n")
+                workGit = simpleGit(wtDir)
+            }
+            const args = ["merge", "--no-edit", source]
+            // See FlowPhase.merge: `ff` has to be asked for in writing.
+            if (strategy === "no-ff") args.splice(1, 0, "--no-ff")
+            await workGit.raw(args)
+            const head = (await workGit.revparse(["HEAD"])).trim()
+
+            if (useWorktree) {
+                // The worktree is DETACHED, so the merge did not move the branch.
+                // `update-ref` with the OLD value as the expected one, so a peer
+                // that advanced it in the meantime makes this FAIL rather than
+                // silently discarding their work.
+                const before = (await this.git.revparse([target])).trim()
+                await this.git.raw([
+                    "update-ref", "-m", `grm flow ${label}: merge ${source}`,
+                    `refs/heads/${target}`, head, before,
+                ])
+            }
+            return head
+        } finally {
+            if (createdDir) await this.removeWorktree(createdDir)
+            // Put the operator back where they were, even on the throw path: a
+            // failed promotion that also leaves you on another branch turns one
+            // problem into two.
+            if (restoreTo) await this.git.raw(["checkout", restoreTo]).catch(() => {})
+        }
+    }
+
+    /** The route declaration, or a refusal that names what IS declared. */
+    route(name: string): FlowRoute {
+        const routes = this.config?.flow?.routes
+        if (!routes || !routes[name]) {
+            throw new Error(
+                `Unknown route '${name}'. Declared: ${routes && Object.keys(routes).length ? Object.keys(routes).join(", ") : "(none)"}`
+            )
+        }
+        const r = routes[name]
+        if (!r.from || !r.into?.length) {
+            throw new Error(`Route '${name}' needs both 'from' and a non-empty 'into'.`)
+        }
+        this.checkDirection(name, r)
+        return r
+    }
+
+    /** What `syncRoute` would carry, per target. Reads only. */
+    async planRoute(name: string): Promise<{ route: string; ahead: Record<string, number> }> {
+        const r = this.route(name)
+        const ahead: Record<string, number> = {}
+        for (const t of r.into) ahead[t] = await this.count(`${t}..${r.from}`)
+        return { route: name, ahead }
+    }
+
+    /**
+     * Run a declared route: carry one branch's content to the others, with no
+     * version involved. This is the hotfix/bugfix shape.
+     *
+     * The DIRECTION is checked against `flow.lines` when both are declared. A
+     * hotfix route that says `down` but points up would merge the whole
+     * integration line into the release line — a release nobody planned, which
+     * every step would report as success.
+     */
+    async syncRoute(name: string): Promise<{ route: string; merged: Record<string, string>; skipped: string[] }> {
+        const r: FlowRoute = this.route(name)
+        const merged: Record<string, string> = {}
+        const skipped: string[] = []
+        for (const target of r.into) {
+            const head = await this.mergeInto(
+                target, r.from, r.merge === "ff" ? "ff" : "no-ff", `route-${name}-${target}`
+            )
+            if (head) merged[target] = head
+            else skipped.push(target)
+        }
+        return { route: name, merged, skipped }
+    }
+
+    /**
+     * The declared direction has to match the ladder. A branch not on the ladder
+     * is not an error — topic branches are not lines — so it is simply not checked.
+     */
+    private checkDirection(name: string, r: FlowRoute): void {
+        const lines = this.config?.flow?.lines
+        if (!lines?.length || !r.direction) return
+        const from = lines.indexOf(r.from)
+        if (from === -1) return
+        for (const target of r.into) {
+            const to = lines.indexOf(target)
+            if (to === -1) continue
+            const actual = to > from ? "down" : to < from ? "up" : "same"
+            if (actual !== r.direction) {
+                throw new Error(
+                    `Route '${name}' declares direction '${r.direction}' but ${r.from} -> ${target} ` +
+                    `is '${actual}' on the declared ladder [${lines.join(" > ")}].`
+                )
+            }
+        }
+    }
+
+    /**
      * Execute the phase.
      *
      * Returns the plan it acted on, with `tagged` set when a tag was created.
      */
-    async run(name: string): Promise<FlowPlan & { tagged?: string; mergeCommit?: string }> {
+    async run(name: string): Promise<FlowPlan & {
+        tagged?: string; mergeCommit?: string; backMerged?: Record<string, string>
+    }> {
         const p = this.phase(name)
         const plan = await this.plan(name)
 
@@ -390,84 +557,54 @@ export class FlowController {
                 `There is nothing to promote.`
             )
         }
+        const mergeCommit = p.mergeFrom
+            // The label IS the phase name, so the directory `plan` reports
+            // (`flow-<phase>`) is the directory `run` creates. A prettier label
+            // here made the plan advertise a path nothing ever used.
+            ? await this.mergeInto(p.branch, p.mergeFrom, this.strategyOf(p), name)
+            : ""
 
-        const useWorktree = this.config?.flow?.worktree?.enabled === true
-        let workGit: SimpleGit = this.git
-        // `createdDir` is set ONLY after `worktree add` returns, and the finally
-        // removes nothing else.
-        //
-        // 🔴 A `wtDir` set before the refusal would be REMOVED BY THE FINALLY.
-        // reclaimWorktrees throws on a directory that carries no owner marker —
-        // the whole point being that it may hold somebody's in-flight work — and
-        // with one variable for both roles the cleanup then deleted exactly the
-        // directory the refusal had just protected. Caught before shipping, by
-        // reading the throw path rather than by a test.
-        let createdDir = ""
-        let mergeCommit: string | undefined
+        // AFTER the merge — see the header. The range now contains the work.
+        const { version, current, why } = await this.nextVersion(p, mergeCommit || p.branch)
+        plan.next = version
+        plan.current = current
+        plan.bumpWhy = why
 
-        // 🔴 THE SETUP IS INSIDE THE TRY, so the finally reaches it.
-        //
-        // It used to sit above, and the window was real: `worktree add` succeeds,
-        // the `checkout --detach` after it throws, and the finally never runs
-        // because the try had not been entered — leaving a registered worktree on
-        // disk that nothing would ever remove. Worktrees that accumulate are not a
-        // tidiness problem; each one is a full checkout of the tree.
-        try {
-            if (useWorktree) {
-                const wtDir = this.worktreeDir(name)
-                await this.reclaimWorktrees(wtDir)
-                mkdirSync(join(wtDir, ".."), { recursive: true })
-                // DETACHED, because git refuses the same branch in two worktrees
-                // and the phase's branch is very often checked out where you are
-                // standing. The branch ref is moved explicitly below.
-                await this.git.raw(["worktree", "add", "--detach", wtDir, p.branch])
-                createdDir = wtDir
-                mkdirSync(join(wtDir, ".grm-flow"), { recursive: true })
-                writeFileSync(join(wtDir, ".grm-flow", "owner"), OWNER_TOKEN + "\n")
-                workGit = simpleGit(wtDir)
-            }
-            if (p.mergeFrom) {
-                const args = ["merge", "--no-edit", p.mergeFrom]
-                // See FlowPhase.merge: `ff` has to be asked for in writing.
-                if (this.strategyOf(p) === "no-ff") args.splice(1, 0, "--no-ff")
-                await workGit.raw(args)
-                mergeCommit = (await workGit.revparse(["HEAD"])).trim()
-
-                if (useWorktree) {
-                    // The worktree is DETACHED, so the merge did not move the
-                    // branch. `update-ref` with the OLD value as the expected
-                    // one, so a peer that advanced the branch in the meantime
-                    // makes this fail rather than silently discarding their work.
-                    const before = await this.git.revparse([p.branch])
-                    await this.git.raw([
-                        "update-ref", "-m", `grm flow ${name}: promote ${p.mergeFrom}`,
-                        `refs/heads/${p.branch}`, mergeCommit, before.trim(),
-                    ])
-                }
-            }
-
-            // AFTER the merge — see the header. The range now contains the work.
-            const { version, current, why } = await this.nextVersion(
-                p, mergeCommit ?? p.branch
-            )
-            plan.next = version
-            plan.current = current
-            plan.bumpWhy = why
-
-            if (p.tag !== false) {
-                await workGit.raw([
-                    "tag", "-a", version, "-m", `${version}\n\ngrm flow ${name}`,
-                    ...(mergeCommit ? [mergeCommit] : []),
-                ])
-            }
-
-            if (p.deleteSource === true && p.mergeFrom) {
-                await this.git.raw(["branch", "-d", p.mergeFrom])
-            }
-        } finally {
-            if (createdDir) await this.removeWorktree(createdDir)
+        // The tag is created from the MAIN repository, not from the worktree that
+        // performed the merge: the merge commit is in the object database and the
+        // branch already points at it, so the worktree has no part left to play —
+        // and it has been removed by now. Naming the commit explicitly, because
+        // HEAD here is whatever the operator has checked out.
+        if (p.tag !== false) {
+            await this.git.raw([
+                "tag", "-a", version, "-m", `${version}\n\ngrm flow ${name}`,
+                ...(mergeCommit ? [mergeCommit] : [p.branch]),
+            ])
         }
 
-        return { ...plan, tagged: p.tag !== false ? plan.next : undefined, mergeCommit }
+        // ── BACK-MERGE, AFTER THE TAG ──
+        //
+        // After the tag, so every branch that receives the merge also receives the
+        // tag and can describe it. Before deleteSource, because a source that is
+        // about to be deleted may itself be one of the branches that needs it.
+        const backMerged: Record<string, string> = {}
+        for (const target of p.backMerge ?? []) {
+            if (target === p.branch) continue          // merging a branch into itself
+            const head = await this.mergeInto(
+                target, p.branch, this.strategyOf(p), `back-${name}-${target}`
+            )
+            if (head) backMerged[target] = head
+        }
+
+        if (p.deleteSource === true && p.mergeFrom) {
+            await this.git.raw(["branch", "-d", p.mergeFrom])
+        }
+
+        return {
+            ...plan,
+            tagged: p.tag !== false ? plan.next : undefined,
+            mergeCommit: mergeCommit || undefined,
+            backMerged: Object.keys(backMerged).length ? backMerged : undefined,
+        }
     }
 }

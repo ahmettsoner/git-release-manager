@@ -88,6 +88,57 @@ export interface FlowPhase {
 
     /** Pathspecs the derivation is scoped to — one component's tree. */
     paths?: string
+
+    /**
+     * Branches this phase's target is merged BACK into once the version is cut.
+     *
+     * 🔴 WITHOUT THIS A PROMOTION IS A ONE-WAY TRIP, and the next one is not an
+     * integration. The promotion creates a merge commit ON the target, and that
+     * commit exists nowhere else — so `main..dev` is never empty again, the
+     * source and the target have DIVERGED by construction, and a rule that says
+     * "the release branch advances only by a dev→main merge" cannot hold. Measured
+     * on this repository: main carried exactly one commit dev did not have, its
+     * own previous promotion's merge, and a readiness gate had been red on it
+     * since.
+     *
+     * It also decides what `git describe` answers on the integration line: until
+     * the merge returns, dev cannot see the tag that was just cut and keeps
+     * describing the one before it.
+     *
+     * Runs AFTER the tag, so the branches that receive it also receive the tag.
+     */
+    backMerge?: string[]
+}
+
+/**
+ * A declared merge ROUTE that is not a phase: the hotfix and bugfix shapes, where
+ * work starts on a branch other than the integration line and has to reach the
+ * others.
+ *
+ * A phase answers "cut a version here". A route answers "carry this content
+ * there", with no version involved — which is why it is a separate declaration
+ * rather than a phase with `tag: false`. A hotfix landing on the release line is
+ * a promotion (it earns a version); the same hotfix reaching the integration line
+ * is a route (it must not).
+ */
+export interface FlowRoute {
+    /** The branch whose content is carried. */
+    from: string
+    /** Every branch it is merged into, in order. */
+    into: string[]
+    /** `no-ff` (default) or `ff`. See FlowPhase.merge for why. */
+    merge?: "no-ff" | "ff"
+    /**
+     * `down` = toward the less stable lines (a hotfix on main reaching dev).
+     * `up`   = toward the more stable ones (a bugfix on a topic branch reaching
+     *          the integration line).
+     *
+     * DECLARED SO IT CAN BE CHECKED. With `lines` set, a route whose direction
+     * contradicts the ladder is REFUSED — a hotfix route accidentally pointing up
+     * would merge the whole integration line into the release line, which is a
+     * release nobody planned and which every gate would report as success.
+     */
+    direction?: "up" | "down"
 }
 
 export interface FlowWorktree {
@@ -114,4 +165,14 @@ export interface Flow {
     worktree?: FlowWorktree
     /** Phase name → its declaration. The names are the project's own. */
     phases: Record<string, FlowPhase>
+    /**
+     * The stability ladder, MOST STABLE FIRST — e.g. `["main", "dev"]`.
+     *
+     * Its only job is to make `direction` checkable. Without it a route's
+     * direction is a comment; with it, "down" and "up" are claims this tool can
+     * refuse. Omitted = no direction checking.
+     */
+    lines?: string[]
+    /** Route name → its declaration. See FlowRoute. */
+    routes?: Record<string, FlowRoute>
 }

@@ -128,6 +128,7 @@ export function createFlowCommand(program: Command) :Command {
                         if (plan.bumpWhy) console.error(`bump         : ${plan.bumpWhy}`)
                         console.error(`tag          : ${plan.willTag ? 'yes' : 'no'}`)
                         console.error(`delete source: ${plan.willDeleteSource ? 'YES' : 'no'}`)
+                        console.error(`back-merge   : ${plan.backMerge?.length ? plan.backMerge.join(', ') : 'NONE — the promotion would be one-way'}`)
                         if (plan.worktree) console.error(`worktree     : ${plan.worktree}`)
                         console.error(`PLAN ONLY — nothing was merged, tagged or deleted. Execute: grm flow run ${phase} --yes`)
                         console.log(plan.next)
@@ -136,7 +137,46 @@ export function createFlowCommand(program: Command) :Command {
                     const done = await flow.run(phase)
                     if (done.mergeCommit) console.error(`merged ${done.mergeFrom} -> ${done.branch} (${done.mergeCommit.slice(0, 10)})`)
                     if (done.tagged) console.error(`tagged ${done.tagged}`)
+                    for (const [t, sha] of Object.entries(done.backMerged ?? {})) {
+                        console.error(`back-merged ${done.branch} -> ${t} (${String(sha).slice(0, 10)})`)
+                    }
                     console.log(done.next)
+                } catch (e) {
+                    console.error(`error: ${e instanceof Error ? e.message : String(e)}`)
+                    process.exit(1)
+                }
+            })
+    )
+
+    // ── routes: carry content, never a version ───────────────────────────────
+    // A hotfix on the release line has to reach the integration line, and that
+    // merge earns no version — the version was already cut where the fix landed.
+    // So `sync` is its own verb rather than a phase with `tag: false`.
+    flowProgram.addCommand(
+        new Command()
+            .command('sync')
+            .description('Run a declared route: carry one branch into the others (no version)')
+            .addArgument(new Argument('<route>', 'A route declared in flow.routes'))
+            .addOption(new Option('-y, --yes', 'Execute; without it nothing is written'))
+            .action(async (route: string, commandOptions: any) => {
+                const options = { ...program.opts(), ...commandOptions }
+                try {
+                    const flow = await loadFlow(options)
+                    const r = flow.route(route)
+                    if (!options.yes) {
+                        const plan = await flow.planRoute(route)
+                        console.error(`route     : ${route}${r.direction ? ` (${r.direction})` : ''}`)
+                        console.error(`from      : ${r.from}`)
+                        for (const t of r.into) {
+                            const n = plan.ahead[t] ?? 0
+                            console.error(`  -> ${t.padEnd(20)} ${n ? `${n} commit(s)` : 'already has it — would be skipped'}`)
+                        }
+                        console.error(`PLAN ONLY — nothing was merged. Execute: grm flow sync ${route} --yes`)
+                        return
+                    }
+                    const done = await flow.syncRoute(route)
+                    for (const [t, sha] of Object.entries(done.merged)) console.error(`merged ${r.from} -> ${t} (${sha.slice(0, 10)})`)
+                    for (const t of done.skipped) console.error(`skipped ${t} — already carries ${r.from}`)
                 } catch (e) {
                     console.error(`error: ${e instanceof Error ? e.message : String(e)}`)
                     process.exit(1)

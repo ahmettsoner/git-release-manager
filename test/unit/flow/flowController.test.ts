@@ -252,6 +252,127 @@ describe('FlowController', () => {
         })
     })
 
+    describe('F9 back-merge: a promotion is not a one-way trip', () => {
+        const withBack = {
+            phases: {
+                dev: { branch: 'dev', channel: 'dev' },
+                prod: { branch: 'main', mergeFrom: 'dev', backMerge: ['dev'] },
+            },
+        }
+
+        it('the target returns to the source, so they stop diverging', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            const f = new FlowController(cfg(withBack), root)
+            const done = await f.run('prod')
+            expect(done.backMerged).toEqual({ dev: expect.any(String) })
+            // THE PROPERTY THAT MATTERS: nothing on main is missing from dev. The
+            // promotion's own merge commit used to be exactly that one commit, and
+            // a rule saying "main advances only by a dev->main merge" then cannot
+            // hold — the two have diverged by construction.
+            expect(git('rev-list', '--count', 'dev..main').trim()).toBe('0')
+        })
+
+        it('…and the tag travels with it, so dev can describe the release', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            const f = new FlowController(cfg(withBack), root)
+            const done = await f.run('prod')
+            // The back-merge runs AFTER the tag on purpose.
+            expect(git('describe', '--tags', 'dev').trim()).toContain(done.tagged!)
+        })
+
+        it('without it, main keeps a commit dev does not have', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            await new FlowController(cfg({ phases: PHASES }), root).run('prod')
+            expect(parseInt(git('rev-list', '--count', 'dev..main').trim(), 10)).toBeGreaterThan(0)
+        })
+
+        it('a second promotion is then a clean integration', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            const f = new FlowController(cfg(withBack), root)
+            await f.run('prod')
+            git('checkout', '-q', 'dev')
+            commit('feat: more work')
+            git('checkout', '-q', 'main')
+            const second = await f.run('prod')
+            expect(second.tagged).toBe('v1.2.0')
+            expect(git('rev-list', '--count', 'dev..main').trim()).toBe('0')
+        })
+
+        it('merging a branch into itself is skipped, not attempted', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            const f = new FlowController(
+                cfg({ phases: { prod: { branch: 'main', mergeFrom: 'dev', backMerge: ['main', 'dev'] } } }), root)
+            const done = await f.run('prod')
+            expect(Object.keys(done.backMerged ?? {})).toEqual(['dev'])
+        })
+    })
+
+    describe('F10 routes: content without a version', () => {
+        const routed = {
+            lines: ['main', 'dev'],
+            phases: PHASES,
+            routes: {
+                hotfix: { from: 'main', into: ['dev'], direction: 'down' },
+                wrongway: { from: 'main', into: ['dev'], direction: 'up' },
+            },
+        }
+
+        it('carries the branch and cuts no tag', async () => {
+            // A fix that landed on the release line, as a hotfix does.
+            git('checkout', '-q', 'main')
+            commit('fix: an urgent repair')
+            const tagsBefore = git('tag', '-l').trim()
+            const f = new FlowController(cfg(routed), root)
+            const done = await f.syncRoute('hotfix')
+            expect(Object.keys(done.merged)).toEqual(['dev'])
+            expect(git('rev-list', '--count', 'dev..main').trim()).toBe('0')
+            expect(git('tag', '-l').trim()).toBe(tagsBefore)   // no version was minted
+        })
+
+        it('skips a target that already carries it, rather than making an empty merge', async () => {
+            git('checkout', '-q', 'main')
+            commit('fix: an urgent repair')
+            const f = new FlowController(cfg(routed), root)
+            await f.syncRoute('hotfix')
+            const second = await f.syncRoute('hotfix')
+            expect(second.merged).toEqual({})
+            expect(second.skipped).toEqual(['dev'])
+        })
+
+        it('refuses a direction that contradicts the declared ladder', async () => {
+            const f = new FlowController(cfg(routed), root)
+            // main -> dev is DOWN on [main > dev]; a route claiming `up` would
+            // merge the integration line into the release line.
+            expect(() => f.route('wrongway')).toThrow(/declares direction 'up'.*is 'down'/s)
+        })
+
+        it('refuses an unknown route, naming the declared ones', () => {
+            const f = new FlowController(cfg(routed), root)
+            expect(() => f.route('nope')).toThrow(/Unknown route 'nope'.*hotfix/s)
+        })
+
+        it('a route with no targets is refused', () => {
+            const f = new FlowController(cfg({ phases: PHASES, routes: { x: { from: 'main', into: [] } } }), root)
+            expect(() => f.route('x')).toThrow(/non-empty 'into'/)
+        })
+
+        it('a branch off the ladder is not direction-checked — topic branches are not lines', async () => {
+            git('checkout', '-q', '-b', 'hotfix/urgent', 'main')
+            commit('fix: urgent')
+            const f = new FlowController(cfg({
+                lines: ['main', 'dev'], phases: PHASES,
+                routes: { up: { from: 'hotfix/urgent', into: ['main', 'dev'], direction: 'up' } },
+            }), root)
+            const done = await f.syncRoute('up')
+            expect(Object.keys(done.merged).sort()).toEqual(['dev', 'main'])
+        })
+    })
+
     describe('F8 the worktree path', () => {
         const wtFlow = { worktree: { enabled: true, dir: '.grm/wt' }, phases: PHASES }
 
