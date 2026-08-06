@@ -1,6 +1,6 @@
 {
   "name": "git-release-manager",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "A tool to generate release notes from git commit history",
   "main": "index.ts",
   "scripts": {

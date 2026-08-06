@@ -5,6 +5,26 @@ import semver from 'semver'
 Burda akış sonra ki step'e merge edilmemiş olan en son version'u işleyecek şekilde kuvvetlendiilmeli
 */
 
+/**
+ * ⚠️ THIS IS *NOT* THE PROJECT CONFIG, AND NOTHING CONNECTS THE TWO.
+ *
+ * `src/config/types/Config.ts` is what `.grm/config.json` deserialises into —
+ * channels, commitTypes, noteTypes, branchStrategies, tag.prefix. This type is
+ * a SECOND, local vocabulary (tagPrefix, releasePrefix, phases.*.channels) with
+ * its own hardcoded defaults below.
+ *
+ * Measured 2026-08-06: every one of the eight `new FlowManager()` call sites in
+ * commands/flow/command.ts passes NO argument. The constructor advertises a
+ * `Partial<Config>` it never receives, so a project cannot configure this
+ * surface at all — whatever its .grm/config.json declares about channels is
+ * invisible here, and `flow` always runs on the defaults below. That is why
+ * `flow phase qa dev` dies on `startBuildNumber`: `dev` is not among
+ * `phases.qa.channels`, and no project config can add it.
+ *
+ * Left as a statement rather than "fixed" by inventing a mapping: the two
+ * shapes are genuinely different questions, and guessing a translation between
+ * them would make this surface confidently wrong instead of visibly unwired.
+ */
 type Config = {
     tagPrefix: string;
     releasePrefix: string;

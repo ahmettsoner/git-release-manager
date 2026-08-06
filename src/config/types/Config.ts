@@ -13,15 +13,15 @@ export interface Config {
     output: string
     tag: {
         /**
-         * The tag pattern. Declared by the packaged default and read by nothing
-         * — recorded here rather than deleted so the next reader does not
-         * mistake it for the live knob.
-         */
-        format?: string
-        /**
-         * The version line's prefix, e.g. `v`. This IS live: it is the default
-         * for `--prefix` on the version path (see VersionController), so a
+         * The version line's prefix, e.g. `v` — the default for `--prefix` on
+         * the version path (see VersionController.withConfiguredPrefix), so a
          * project declares it once instead of passing it on every call.
+         *
+         * This used to sit beside `format`, a regex the packaged default
+         * shipped and NOTHING read. A setting a project writes and no code
+         * consults is worse than no setting: the next reader assumes the
+         * behaviour is configured. It was removed 2026-08-06 rather than
+         * documented, because a documented dead key is still a dead key.
          */
         prefix?: string
     }

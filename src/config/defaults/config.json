@@ -2,7 +2,7 @@
   "appName": "My App",
   "output": "stdout",
   "tag": {
-    "format": "^v(\\d+)\\.(\\d+)\\.(\\d+)(?:-([a-zA-Z0-9]+)\\.(\\d+))?$"
+    "prefix": "v"
   },
   "channels": {
     "dev": {
