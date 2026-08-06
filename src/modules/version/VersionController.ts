@@ -1,4 +1,8 @@
+import simpleGit from 'simple-git'
 import { VersionCliArgs } from '../../commands/version/types/VersionCliArgs'
+import { readConfig } from '../../config/configManager'
+import { getGitLogAsJson } from '../git/commits/commitProcessor'
+import { BumpEvidence, deriveBump, explainBump } from './BumpDeriver'
 import { GitVersionManager } from './GitVersionManager'
 import { ProjectVersionManager } from './ProjectVersion'
 import { ReleaseManager } from './ReleaseManager'
@@ -15,6 +19,90 @@ export class VersionController {
         this.releaseManager = new ReleaseManager()
         this.validator = new VersionValidator()
         this.projectVersionManager = new ProjectVersionManager()
+    }
+
+    /**
+     * resolveBaselineRef — turn a version STRING into a ref this repository has.
+     *
+     * Candidates in order: the string itself, then the configured prefix, then a
+     * bare `v`. Ordered most-explicit-first so a caller that already passed a
+     * real ref is never second-guessed, and `v` last because it is a convention
+     * rather than this repository's declaration.
+     */
+    private async resolveBaselineRef(baseline: string, prefix?: string): Promise<string | null> {
+        const git = simpleGit()
+        const candidates = [baseline]
+        if (prefix && !baseline.startsWith(prefix)) candidates.push(`${prefix}${baseline}`)
+        if (!baseline.startsWith('v')) candidates.push(`v${baseline}`)
+
+        for (const candidate of candidates) {
+            try {
+                const out = await git.raw(['rev-parse', '--verify', '--quiet', `${candidate}^{commit}`])
+                // THE ANSWER IS THE SHA, NOT THE ABSENCE OF A THROW. `rev-parse
+                // --verify --quiet` exits non-zero with EMPTY output when a ref
+                // does not resolve, and that shape does not reliably surface as
+                // a rejected promise here — measured: the first candidate was
+                // accepted for a tag that does not exist, the range stayed
+                // `1.0.0..HEAD`, and `git log` failed one call later in a place
+                // that could no longer say which spelling was wrong.
+                if (/^[0-9a-f]{40}/.test((out ?? '').trim())) return candidate
+            } catch {
+                // Not a ref here. Try the next spelling — this is a lookup, and a
+                // miss is data, not a failure.
+            }
+        }
+        return null
+    }
+
+    /**
+     * deriveBumpFromRange — read the commits this version would cover and grade
+     * them against the configured taxonomy.
+     *
+     * Returns null when the range cannot be established, and the caller then
+     * proceeds with its normal default rather than failing. That is deliberate:
+     * `--derive` asks the history for an OPINION, and a repository with no
+     * baseline (the first version ever) genuinely has none to give. Refusing
+     * there would make the first release the one command nobody can run.
+     */
+    private async deriveBumpFromRange(options: VersionCliArgs): Promise<BumpEvidence | null> {
+        try {
+            const config = await readConfig(options.config, options.environment)
+            const baseline = options.from ?? (await this.gitManager.getLatestTag(options.prefix, options.channel))
+            if (!baseline) return null
+
+            // THE BASELINE IS A VERSION; THE RANGE NEEDS A REF, and they are not
+            // the same string. `--from 1.0.0` is a perfectly good baseline for
+            // the arithmetic — semver does not care about a `v` — while the tag
+            // in the repository is `v1.0.0`, so handing it straight to `git log`
+            // produces "ambiguous argument '1.0.0..HEAD'". The arithmetic then
+            // still answers, from a range that was never read: a derivation that
+            // silently graded nothing.
+            const from = await this.resolveBaselineRef(baseline, options.prefix)
+            if (!from) {
+                console.error(
+                    `bump: baseline '${baseline}' does not resolve to a ref in this repository, ` +
+                    `so there is no range to grade; falling back to the flags given`
+                )
+                return null
+            }
+
+            const to = options.to ?? 'HEAD'
+            // --no-merges: a merge commit carries no type and never could. Its
+            // content is the commits it joins, and those are in this range too.
+            const commits = await getGitLogAsJson(`${from}..${to}`, ['--no-merges'])
+            if (!commits?.length) return null
+            return deriveBump(commits, config)
+        } catch (error) {
+            // A derivation that cannot run must not take the version path down
+            // with it — the caller still has an explicit default. It says so on
+            // stderr, because a SILENT fallback would look exactly like a range
+            // that legitimately voted patch.
+            console.error(
+                `bump: could not derive from history (${error instanceof Error ? error.message : String(error)}); ` +
+                `falling back to the flags given`
+            )
+            return null
+        }
     }
 
     async handleVersionCommand(options: VersionCliArgs): Promise<void> {
@@ -77,6 +165,28 @@ export class VersionController {
             if (options.sync) {
                 await this.gitManager.syncVersions(options.push)
                 return
+            }
+
+            // --derive: let the COMMITS name the bump, through the taxonomy this
+            // project already configured for its changelog.
+            //
+            // AN EXPLICIT FLAG ALWAYS WINS, and quietly. `--derive --minor` is an
+            // operator saying something the history cannot know — a compatibility
+            // break nobody marked, a release deliberately held back — and a tool
+            // that argued there would be overruled by hand every time until
+            // somebody stopped passing --derive at all.
+            //
+            // THE RANGE IS THE BASELINE'S. Whatever version this run bumps FROM
+            // is the only defensible start: it names the commit the previous
+            // version pointed at, so the range is exactly the work that is new.
+            // A wider range re-grades released commits and would re-derive the
+            // same major forever once one lands.
+            if (options.derive && !options.major && !options.minor && !options.patch) {
+                const evidence = await this.deriveBumpFromRange(options)
+                if (evidence) {
+                    if (options.explainBump) console.error(`bump: ${explainBump(evidence)}`)
+                    options = { ...options, [evidence.bump]: true }
+                }
             }
 
             // Handle version creation/update

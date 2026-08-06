@@ -29,6 +29,11 @@ export interface Config {
     template: string
     branchStrategies: Record<string, BranchConfig>;
     repository: Repository
+    /** Version-derivation policy. Absent = derive nothing beyond the default. */
+    versioning?: {
+        /** The level a range falls to when no commit votes. Default: patch. */
+        defaultBump?: 'major' | 'minor' | 'patch'
+    }
 }
 
 export type CommitTypeNames = Config['commitTypes'][number]['type']

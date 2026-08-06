@@ -33,4 +33,10 @@ export interface VersionCliArgs extends CliArgs {
     from?: string
     branch?: boolean
     sync?: boolean
+    /** Derive the bump from the commits in the range instead of naming it. */
+    derive?: boolean
+    /** Print the derivation's reasoning on STDERR (stdout stays the version). */
+    explainBump?: boolean
+    /** End of the derivation range. Default: HEAD. */
+    to?: string
 }

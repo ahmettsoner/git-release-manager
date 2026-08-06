@@ -61,6 +61,9 @@ export function createVersionCommand(program: Command) :Command {
     .option("--note-file <path>", "Load release notes from a file")
     .option("-n, --dry-run", "Print the version that WOULD be cut; write nothing")
     .option("--from <version>", "Compute from THIS baseline instead of discovering the latest tag")
+    .option("--derive", "Derive the bump from the commits in the range, via commitTypes/noteTypes `bump`")
+    .option("--explain-bump", "Print the derivation`s reasoning on STDERR (stdout stays the version)")
+    .option("--to <ref>", "End of the derivation range (default: HEAD)")
     .action(async (commandOptions: VersionCliArgs) => {
         // --path is the CLI spelling of the controller's projectPath, the same
         // translation `version project` performs.

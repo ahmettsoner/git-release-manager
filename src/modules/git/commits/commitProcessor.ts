@@ -41,11 +41,20 @@ export async function listCommitsAsync(range: string | null, config: Config): Pr
     return commitList
 }
 
-export async function getGitLogAsJson(range: string | null = null): Promise<GitCommit[]> {
+/**
+ * @param extraArgs Additional `git log` arguments, e.g. `['--no-merges']`.
+ *   A caller that GRADES commits wants them out: a merge is not a change, it is
+ *   a join of changes the range already contains, so counting one as
+ *   "unclassified" reports a classification failure that never happened.
+ *   Measured on a real range: 116 commits, 50 of them merges, so the diagnostic
+ *   claimed 43% of the work was unclassified when the true figure was far lower.
+ */
+export async function getGitLogAsJson(range: string | null = null, extraArgs: string[] = []): Promise<GitCommit[]> {
     const git = simpleGit()
 
     try {
-        const log = range ? await git.log([range]) : await git.log()
+        const args = [...(range ? [range] : []), ...extraArgs]
+        const log = args.length ? await git.log(args) : await git.log()
 
         const jsonArray = log.all.map(commit => ({
             hash: commit.hash,
