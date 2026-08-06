@@ -290,5 +290,54 @@ describe('FlowController', () => {
             const f = new FlowController(cfg(wtFlow), root)
             await expect(f.run('prod')).rejects.toThrow(/owner marker/)
         })
+
+        it('…and the refused directory SURVIVES the refusal', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            const foreign = join(root, '.grm/wt/flow-prod')
+            execFileSync('mkdir', ['-p', foreign])
+            writeFileSync(join(foreign, 'someones-work.txt'), 'do not delete me\n')
+            const f = new FlowController(cfg(wtFlow), root)
+            await expect(f.run('prod')).rejects.toThrow(/owner marker/)
+            // The cleanup used to reach it: one variable served both "where I
+            // would work" and "what I created", so the finally deleted exactly
+            // what the refusal had just protected.
+            expect(existsSync(join(foreign, 'someones-work.txt'))).toBe(true)
+        })
+
+        it('reclaims a leftover from a killed run instead of piling them up', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            // What a SIGKILL leaves: a registered worktree with our marker and no
+            // finally to remove it.
+            const stale = join(root, '.grm/wt/flow-prod')
+            git('worktree', 'add', '--detach', stale, 'main')
+            execFileSync('mkdir', ['-p', join(stale, '.grm-flow')])
+            writeFileSync(join(stale, '.grm-flow', 'owner'), 'FlowController/v1\n')
+            expect(git('worktree', 'list').trim().split('\n').length).toBe(2)
+
+            const f = new FlowController(cfg(wtFlow), root)
+            const done = await f.run('prod')
+            expect(done.tagged).toBe('v1.1.0')
+            expect(git('worktree', 'list').trim().split('\n').length).toBe(1)
+            expect(existsSync(stale)).toBe(false)
+        })
+
+        it('a kept worktree is reclaimed by the NEXT run, not hoarded', async () => {
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')
+            const kept = { worktree: { enabled: true, dir: '.grm/wt', keep: true }, phases: PHASES }
+            await new FlowController(cfg(kept), root).run('prod')
+            expect(existsSync(join(root, '.grm/wt/flow-prod'))).toBe(true)
+
+            // A second promotion: `keep` is for inspecting the run that happened,
+            // not a licence to leave a full checkout per release behind.
+            git('checkout', '-q', 'dev')
+            git('merge', '-q', '--no-edit', 'main')
+            commit('feat: more')
+            git('checkout', '-q', 'main')
+            await new FlowController(cfg(kept), root).run('prod')
+            expect(git('worktree', 'list').trim().split('\n').length).toBe(2)   // only the new one
+        })
     })
 })

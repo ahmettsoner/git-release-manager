@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import semver from 'semver'
 import simpleGit, { SimpleGit } from 'simple-git'
@@ -42,6 +42,8 @@ import { deriveBump, explainBump } from '../version/BumpDeriver'
  * · deleting the source branch unless the phase asked for it. On a long-lived
  *   integration line that is not a cleanup, it is an outage.
  */
+
+const OWNER_TOKEN = "FlowController/v1"
 
 export interface FlowPlan {
     phase: string
@@ -252,6 +254,62 @@ export class FlowController {
     }
 
     /**
+     * Remove one worktree this tool created, and deregister it.
+     *
+     * `keep: true` leaves it for inspection — of the run that just happened. The
+     * next run reclaims it (see reclaimWorktrees), because `keep` is a debugging
+     * aid and not a licence to hoard checkouts.
+     *
+     * `worktree remove` can refuse (a lock, a file it cannot delete), and a
+     * refusal that leaves the directory behind is exactly the accumulation this
+     * guards against — so the removal falls back to deleting the directory, and
+     * `prune` then clears the registration git is left holding.
+     */
+    private async removeWorktree(dir: string): Promise<void> {
+        if (this.config?.flow?.worktree?.keep === true) return
+        await this.git.raw(["worktree", "remove", "--force", dir]).catch(() => {})
+        if (existsSync(dir)) {
+            try { rmSync(dir, { recursive: true, force: true }) } catch { /* reported by prune */ }
+        }
+        await this.git.raw(["worktree", "prune"]).catch(() => {})
+    }
+
+    /**
+     * Reclaim leftovers before starting: this phase's directory and any other
+     * `flow-*` under the configured root that carries OUR owner marker.
+     *
+     * A killed process (a laptop closing, a CI timeout, a SIGKILL) leaves a
+     * worktree no finally ever runs for. Without this they pile up one full
+     * checkout at a time, and the only symptom is a disk that fills.
+     *
+     * ⚠️ AN UNOWNED DIRECTORY IS REFUSED, NOT RECLAIMED — and the refusal comes
+     * FIRST. A directory that merely looks like ours may hold somebody's
+     * in-flight work; two sessions have already been lost to a tool removing
+     * worktrees it did not create.
+     */
+    private async reclaimWorktrees(current: string): Promise<void> {
+        if (existsSync(current) && !existsSync(join(current, ".grm-flow", "owner"))) {
+            throw new Error(`${current} exists and carries no owner marker — refusing to reuse it.`)
+        }
+        const rootDir = join(current, "..")
+        let entries: string[] = []
+        try {
+            entries = readdirSync(rootDir).filter(e => e.startsWith("flow-"))
+        } catch {
+            return                                   // the root does not exist yet
+        }
+        for (const e of entries) {
+            const dir = join(rootDir, e)
+            if (!existsSync(join(dir, ".grm-flow", "owner"))) continue   // not ours
+            await this.git.raw(["worktree", "remove", "--force", dir]).catch(() => {})
+            if (existsSync(dir)) {
+                try { rmSync(dir, { recursive: true, force: true }) } catch { /* prune reports */ }
+            }
+        }
+        await this.git.raw(["worktree", "prune"]).catch(() => {})
+    }
+
+    /**
      * The commits in a range, read from THIS controller's repository.
      *
      * 🔴 NOT `getGitLogAsJson`. That helper constructs `simpleGit()` with no
@@ -335,30 +393,39 @@ export class FlowController {
 
         const useWorktree = this.config?.flow?.worktree?.enabled === true
         let workGit: SimpleGit = this.git
-        let wtDir = ""
+        // `createdDir` is set ONLY after `worktree add` returns, and the finally
+        // removes nothing else.
+        //
+        // 🔴 A `wtDir` set before the refusal would be REMOVED BY THE FINALLY.
+        // reclaimWorktrees throws on a directory that carries no owner marker —
+        // the whole point being that it may hold somebody's in-flight work — and
+        // with one variable for both roles the cleanup then deleted exactly the
+        // directory the refusal had just protected. Caught before shipping, by
+        // reading the throw path rather than by a test.
+        let createdDir = ""
+        let mergeCommit: string | undefined
 
-        if (useWorktree) {
-            wtDir = this.worktreeDir(name)
-            mkdirSync(join(wtDir, ".."), { recursive: true })
-            if (!existsSync(wtDir)) {
+        // 🔴 THE SETUP IS INSIDE THE TRY, so the finally reaches it.
+        //
+        // It used to sit above, and the window was real: `worktree add` succeeds,
+        // the `checkout --detach` after it throws, and the finally never runs
+        // because the try had not been entered — leaving a registered worktree on
+        // disk that nothing would ever remove. Worktrees that accumulate are not a
+        // tidiness problem; each one is a full checkout of the tree.
+        try {
+            if (useWorktree) {
+                const wtDir = this.worktreeDir(name)
+                await this.reclaimWorktrees(wtDir)
+                mkdirSync(join(wtDir, ".."), { recursive: true })
                 // DETACHED, because git refuses the same branch in two worktrees
                 // and the phase's branch is very often checked out where you are
                 // standing. The branch ref is moved explicitly below.
                 await this.git.raw(["worktree", "add", "--detach", wtDir, p.branch])
+                createdDir = wtDir
                 mkdirSync(join(wtDir, ".grm-flow"), { recursive: true })
-                writeFileSync(join(wtDir, ".grm-flow", "owner"), "FlowController/v1\n")
-            } else if (!existsSync(join(wtDir, ".grm-flow", "owner"))) {
-                // Only ever touch what this tool created. A directory that merely
-                // looks like ours may hold somebody's in-flight work.
-                throw new Error(`${wtDir} exists and carries no owner marker — refusing to reuse it.`)
-            } else {
-                await simpleGit(wtDir).raw(["checkout", "--detach", p.branch])
+                writeFileSync(join(wtDir, ".grm-flow", "owner"), OWNER_TOKEN + "\n")
+                workGit = simpleGit(wtDir)
             }
-            workGit = simpleGit(wtDir)
-        }
-
-        let mergeCommit: string | undefined
-        try {
             if (p.mergeFrom) {
                 const args = ["merge", "--no-edit", p.mergeFrom]
                 // See FlowPhase.merge: `ff` has to be asked for in writing.
@@ -398,10 +465,7 @@ export class FlowController {
                 await this.git.raw(["branch", "-d", p.mergeFrom])
             }
         } finally {
-            if (useWorktree && wtDir && this.config?.flow?.worktree?.keep !== true) {
-                await this.git.raw(["worktree", "remove", "--force", wtDir]).catch(() => {})
-                await this.git.raw(["worktree", "prune"]).catch(() => {})
-            }
+            if (createdDir) await this.removeWorktree(createdDir)
         }
 
         return { ...plan, tagged: p.tag !== false ? plan.next : undefined, mergeCommit }
