@@ -12,7 +12,18 @@ export interface Config {
     appName: string
     output: string
     tag: {
-        format: string
+        /**
+         * The tag pattern. Declared by the packaged default and read by nothing
+         * — recorded here rather than deleted so the next reader does not
+         * mistake it for the live knob.
+         */
+        format?: string
+        /**
+         * The version line's prefix, e.g. `v`. This IS live: it is the default
+         * for `--prefix` on the version path (see VersionController), so a
+         * project declares it once instead of passing it on every call.
+         */
+        prefix?: string
     }
     channels: {
         [key: string]: ChannelType

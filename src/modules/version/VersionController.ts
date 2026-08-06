@@ -77,10 +77,23 @@ export class VersionController {
             // produces "ambiguous argument '1.0.0..HEAD'". The arithmetic then
             // still answers, from a range that was never read: a derivation that
             // silently graded nothing.
-            const from = await this.resolveBaselineRef(baseline, options.prefix)
+            //
+            // --since IS THE CALLER SAYING THE TWO CANNOT BE INFERRED FROM EACH
+            // OTHER. A project running several version LINES tags them
+            // `<line>-vX.Y.Z`, so the baseline it hands over is the bare semver
+            // core `1.0.0` while the ref that starts the range is
+            // `catalystctl-v1.0.0`. Guessing from the core alone finds the
+            // repository's OWN `v1.0.0` — a real tag, at the wrong point in
+            // history — and the derivation then grades a range belonging to a
+            // different line. Measured: a component whose tree had not been
+            // touched derived a patch bump from another line's commits.
+            const from = options.since
+                ? await this.resolveBaselineRef(options.since, options.prefix)
+                : await this.resolveBaselineRef(baseline, options.prefix)
             if (!from) {
                 console.error(
-                    `bump: baseline '${baseline}' does not resolve to a ref in this repository, ` +
+                    `bump: ${options.since ? `range start '${options.since}'` : `baseline '${baseline}'`} ` +
+                    `does not resolve to a ref in this repository, ` +
                     `so there is no range to grade; falling back to the flags given`
                 )
                 return null
@@ -89,7 +102,18 @@ export class VersionController {
             const to = options.to ?? 'HEAD'
             // --no-merges: a merge commit carries no type and never could. Its
             // content is the commits it joins, and those are in this range too.
-            const commits = await getGitLogAsJson(`${from}..${to}`, ['--no-merges'])
+            //
+            // --paths scopes the derivation to ONE component's tree. Without it
+            // a repository with several independently-versioned products grades
+            // every one of them against every commit, so a fix in product A
+            // bumps product B — and the two lines, whose whole purpose is to be
+            // independent, move in lockstep while each claims to be its own.
+            // `--` separates pathspecs from revisions; without it git resolves a
+            // path that happens to look like a ref and answers about the wrong
+            // thing.
+            const pathspecs = (options.paths ?? '').split(/\s+/).filter(Boolean)
+            const logArgs = ['--no-merges', ...(pathspecs.length ? ['--', ...pathspecs] : [])]
+            const commits = await getGitLogAsJson(`${from}..${to}`, logArgs)
             if (!commits?.length) return null
             return deriveBump(commits, config)
         } catch (error) {
@@ -105,8 +129,39 @@ export class VersionController {
         }
     }
 
+    /**
+     * withConfiguredPrefix — let `tag.prefix` in the config be the default for
+     * `--prefix`.
+     *
+     * WHY THIS EXISTS. The prefix was DECLARED in three places and read in one.
+     * Measured 2026-08-06: `tag.prefix` (a project config), `tag.format` (the
+     * packaged default and the Config type) and `config.tagPrefix` (read by
+     * FlowManager, declared by no config, so it interpolated the string
+     * "undefined" into its patterns). The only live knob was the CLI flag. A
+     * setting a project writes and nothing reads is worse than no setting: the
+     * next reader assumes the prefix is configured and it is not.
+     *
+     * THE FLAG STILL WINS, always. A caller that passes --prefix has said
+     * something more specific than the file, and a caller that passes NOTHING
+     * on a project with no tag.prefix gets exactly today's behaviour — so this
+     * cannot change what any existing invocation does.
+     */
+    private async withConfiguredPrefix(options: VersionCliArgs): Promise<VersionCliArgs> {
+        if (options.prefix !== undefined) return options
+        try {
+            const config = await readConfig(options.config, options.environment)
+            const prefix = config?.tag?.prefix
+            if (typeof prefix === 'string' && prefix.length > 0) return { ...options, prefix }
+        } catch {
+            // A config that cannot be read is not a reason to fail a version
+            // command that never needed it.
+        }
+        return options
+    }
+
     async handleVersionCommand(options: VersionCliArgs): Promise<void> {
         try {
+            options = await this.withConfiguredPrefix(options)
             // Validate version manipulation options
             this.validator.validateVersionOptions(options)
 

@@ -39,4 +39,8 @@ export interface VersionCliArgs extends CliArgs {
     explainBump?: boolean
     /** End of the derivation range. Default: HEAD. */
     to?: string
+    /** Space-separated pathspecs scoping the derivation to one component. */
+    paths?: string
+    /** Range start for the derivation, when it is not the --from baseline. */
+    since?: string
 }

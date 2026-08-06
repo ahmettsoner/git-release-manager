@@ -64,6 +64,8 @@ export function createVersionCommand(program: Command) :Command {
     .option("--derive", "Derive the bump from the commits in the range, via commitTypes/noteTypes `bump`")
     .option("--explain-bump", "Print the derivation`s reasoning on STDERR (stdout stays the version)")
     .option("--to <ref>", "End of the derivation range (default: HEAD)")
+    .option("--paths <paths>", "Space-separated pathspecs; the derivation sees only commits touching them")
+    .option("--since <ref>", "Start the derivation range at THIS ref (default: the --from baseline resolved as a ref)")
     .action(async (commandOptions: VersionCliArgs) => {
         // --path is the CLI spelling of the controller's projectPath, the same
         // translation `version project` performs.
