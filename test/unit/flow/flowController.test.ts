@@ -373,12 +373,50 @@ describe('FlowController', () => {
         })
     })
 
+    describe('F11 who holds the target decides where the merge happens', () => {
+        const wt = { worktree: { enabled: true, dir: '.grm/wt' }, phases: PHASES }
+
+        it('a target checked out HERE is merged in place, not by moving its ref', async () => {
+            // Moving a checked-out branch's ref leaves that working tree and index
+            // matching the OLD commit — every difference shows up as a local
+            // modification in a checkout nobody was looking at.
+            commit('feat: a capability')
+            git('checkout', '-q', 'main')                 // the TARGET is held here
+            const f = new FlowController(cfg(wt), root)
+            const done = await f.run('prod')
+            expect(done.tagged).toBe('v1.1.0')
+            expect(git('rev-parse', 'main').trim()).toBe(done.mergeCommit)
+            // The proof: the working tree still matches HEAD.
+            expect(git('status', '--porcelain').trim()).toBe('')
+            // …and no worktree was used for it.
+            expect(existsSync(join(root, '.grm/wt/flow-prod'))).toBe(false)
+        })
+
+        it('a target held in ANOTHER worktree is refused by name', async () => {
+            commit('feat: a capability')
+            const other = join(root, 'elsewhere')
+            git('worktree', 'add', other, 'main')          // main is held over there
+            git('checkout', '-q', 'dev')
+            const before = git('rev-parse', 'main').trim()
+            const f = new FlowController(cfg(wt), root)
+            await expect(f.run('prod')).rejects.toThrow(/checked out in another worktree/)
+            // Nothing moved. (`dev..main` is 0 in this fixture BY CONSTRUCTION —
+            // dev was branched from main — so it cannot be the evidence; the
+            // target's own sha is.)
+            expect(git('rev-parse', 'main').trim()).toBe(before)
+            expect(git('tag', '-l').trim()).toBe('v1.0.0')
+        })
+    })
+
     describe('F8 the worktree path', () => {
         const wtFlow = { worktree: { enabled: true, dir: '.grm/wt' }, phases: PHASES }
 
         it('moves the branch even though the merge lands detached', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             const before = git('rev-parse', 'main').trim()
             const f = new FlowController(cfg(wtFlow), root)
             const done = await f.run('prod')
@@ -388,7 +426,10 @@ describe('FlowController', () => {
 
         it('leaves nothing behind', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             await new FlowController(cfg(wtFlow), root).run('prod')
             expect(existsSync(join(root, '.grm/wt/flow-prod'))).toBe(false)
             expect(git('worktree', 'list').trim().split('\n').length).toBe(1)
@@ -396,7 +437,10 @@ describe('FlowController', () => {
 
         it('keep: true leaves it for inspection', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             const f = new FlowController(
                 cfg({ worktree: { enabled: true, dir: '.grm/wt', keep: true }, phases: PHASES }), root)
             await f.run('prod')
@@ -405,7 +449,10 @@ describe('FlowController', () => {
 
         it('refuses a worktree directory it does not own', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             // A directory that merely LOOKS like ours may hold in-flight work.
             execFileSync('mkdir', ['-p', join(root, '.grm/wt/flow-prod')])
             const f = new FlowController(cfg(wtFlow), root)
@@ -414,7 +461,10 @@ describe('FlowController', () => {
 
         it('…and the refused directory SURVIVES the refusal', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             const foreign = join(root, '.grm/wt/flow-prod')
             execFileSync('mkdir', ['-p', foreign])
             writeFileSync(join(foreign, 'someones-work.txt'), 'do not delete me\n')
@@ -428,7 +478,10 @@ describe('FlowController', () => {
 
         it('reclaims a leftover from a killed run instead of piling them up', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             // What a SIGKILL leaves: a registered worktree with our marker and no
             // finally to remove it.
             const stale = join(root, '.grm/wt/flow-prod')
@@ -446,7 +499,10 @@ describe('FlowController', () => {
 
         it('a kept worktree is reclaimed by the NEXT run, not hoarded', async () => {
             commit('feat: a capability')
-            git('checkout', '-q', 'main')
+            // Stay on dev: the target must be FREE for the isolated path to be
+            // taken at all, and that is the real shape — you promote dev into main
+            // from dev. With main checked out here the merge has to happen in this
+            // checkout, because moving a checked-out branch's ref desyncs it.
             const kept = { worktree: { enabled: true, dir: '.grm/wt', keep: true }, phases: PHASES }
             await new FlowController(cfg(kept), root).run('prod')
             expect(existsSync(join(root, '.grm/wt/flow-prod'))).toBe(true)

@@ -399,7 +399,29 @@ export class FlowController {
         const ahead = await this.count(`${target}..${source}`)
         if (ahead === 0) return ""
 
-        const useWorktree = this.config?.flow?.worktree?.enabled === true
+        // ── WHO HOLDS THE TARGET DECIDES WHERE THE MERGE HAPPENS ──
+        //
+        // 🔴 `update-ref` ON A CHECKED-OUT BRANCH DESYNCS THAT CHECKOUT. The ref
+        // moves, HEAD follows it, and the working tree and index do NOT — so every
+        // file that differs between the old and new commit shows up as a local
+        // modification or deletion in a checkout the operator was not even looking
+        // at. The promotion path never hit this because its target (the release
+        // line) is not the branch anyone stands on; a BACK-MERGE targets the
+        // integration line, which is exactly the branch everyone stands on.
+        //
+        // So: held HERE → merge in place, which is the only way that working tree
+        // stays consistent (git updates it as part of the merge). Held in ANOTHER
+        // worktree → refuse by name; moving somebody else's checked-out branch is
+        // not ours to do.
+        const holder = await this.worktreeHolding(target)
+        const heldHere = holder !== "" && resolve(holder) === resolve(this.root)
+        if (holder && !heldHere) {
+            throw new Error(
+                `${target} is checked out in another worktree (${holder}), so its ref cannot be ` +
+                `moved from here without desyncing that checkout. Run the merge there, or detach it.`
+            )
+        }
+        const useWorktree = this.config?.flow?.worktree?.enabled === true && !heldHere
         let workGit: SimpleGit = this.git
         let createdDir = ""
         // The branch to return to when this merge did not happen in a worktree.
@@ -493,6 +515,27 @@ export class FlowController {
         const ahead: Record<string, number> = {}
         for (const t of r.into) ahead[t] = await this.count(`${t}..${r.from}`)
         return { route: name, ahead }
+    }
+
+    /**
+     * The worktree path that has `branch` checked out, or "" if none does.
+     *
+     * `git worktree list --porcelain` is the only surface that answers this for
+     * EVERY checkout including the main one; `rev-parse --abbrev-ref HEAD` only
+     * ever answers about the directory you asked in, so a branch held by a
+     * sibling worktree would read as free.
+     */
+    private async worktreeHolding(branch: string): Promise<string> {
+        const out = await this.git.raw(["worktree", "list", "--porcelain"]).catch(() => "")
+        let path = ""
+        for (const line of String(out).split("\n")) {
+            if (line.startsWith("worktree ")) path = line.slice("worktree ".length).trim()
+            else if (line.startsWith("branch ")) {
+                const ref = line.slice("branch ".length).trim()
+                if (ref === `refs/heads/${branch}`) return path
+            }
+        }
+        return ""
     }
 
     /**
