@@ -19,7 +19,16 @@ export async function listCommitsAsync(range: string | null, config: Config): Pr
     const commitList = await Promise.all(
         filteredCommits.map(async commit => {
             const parsedCommit = await enrichCommit(commit, config)
-            const { stdout: filesOutput } = await execWithErrorHandling(`git log --pretty=format:"" --no-commit-id --name-only -r ${parsedCommit.raw.hash}`)
+            // `-1`, and its absence was the whole defect. `git log <hash>` walks
+            // the ENTIRE ancestry of that commit, so asking "which files did this
+            // commit touch" answered with every file touched since the root — once
+            // per commit in the range, i.e. quadratic in history size. Measured
+            // 2026-08-06 on a large repository: the output blew Node's 1 MiB exec
+            // buffer, execWithErrorHandling swallowed the error and returned an
+            // empty string, and the changelog rendered with NO files listed while
+            // exiting 0. Raising the buffer alone converted that silent truncation
+            // into a run that does not finish.
+            const { stdout: filesOutput } = await execWithErrorHandling(`git log -1 --pretty=format: --name-only ${parsedCommit.raw.hash}`)
             const files = filesOutput.split('\n').filter(Boolean)
 
             return {
