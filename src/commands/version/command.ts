@@ -66,6 +66,12 @@ export function createVersionCommand(program: Command) :Command {
     .option("--to <ref>", "End of the derivation range (default: HEAD)")
     .option("--paths <paths>", "Space-separated pathspecs; the derivation sees only commits touching them")
     .option("--since <ref>", "Start the derivation range at THIS ref (default: the --from baseline resolved as a ref)")
+    // Two flags rather than one `--no-stamp`: the config can turn stamping on
+    // by default (versioning.stamp.onBump), so BOTH directions need an override
+    // — force it for a project that has not opted in, and skip it once for a
+    // project that has. A single negatable flag can only express one of them.
+    .option("--stamp", "Write the version into the files declared in versioning.stamp, even if onBump is off")
+    .option("--skip-stamp", "Do not stamp, even if versioning.stamp.onBump is on")
     .action(async (commandOptions: VersionCliArgs) => {
         // --path is the CLI spelling of the controller's projectPath, the same
         // translation `version project` performs.

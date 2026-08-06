@@ -7,6 +7,7 @@ import { MentionType } from './MentionType'
 import { NoteType } from './NoteType'
 import { Options } from './Options'
 import { Repository } from './Repository'
+import { Versioning } from './Versioning'
 
 export interface Config {
     appName: string
@@ -40,11 +41,11 @@ export interface Config {
     template: string
     branchStrategies: Record<string, BranchConfig>;
     repository: Repository
-    /** Version-derivation policy. Absent = derive nothing beyond the default. */
-    versioning?: {
-        /** The level a range falls to when no commit votes. Default: patch. */
-        defaultBump?: 'major' | 'minor' | 'patch'
-    }
+    /**
+     * Version-derivation and version-stamping policy. Absent = derive nothing
+     * beyond the default and write nothing. See types/Versioning.ts.
+     */
+    versioning?: Versioning
 }
 
 export type CommitTypeNames = Config['commitTypes'][number]['type']

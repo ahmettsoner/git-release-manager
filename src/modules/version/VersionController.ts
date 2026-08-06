@@ -1,6 +1,7 @@
 import simpleGit from 'simple-git'
 import { VersionCliArgs } from '../../commands/version/types/VersionCliArgs'
 import { readConfig } from '../../config/configManager'
+import { VersionStamper } from './VersionStamper'
 import { getGitLogAsJson } from '../git/commits/commitProcessor'
 import { BumpEvidence, deriveBump, explainBump } from './BumpDeriver'
 import { GitVersionManager } from './GitVersionManager'
@@ -159,6 +160,38 @@ export class VersionController {
         return options
     }
 
+    /**
+     * maybeStamp — write the version into the files the project declared.
+     *
+     * Never fatal by default. Stamping is a CONVENIENCE over a version that has
+     * already been decided and, at this point, already recorded; failing the
+     * command here would leave the caller believing no version was cut when one
+     * was. A file the project marked `required` still throws — that is the
+     * project saying the stamp is not a convenience — and the throw reaches the
+     * outer catch, which is why this does not swallow those.
+     */
+    private async maybeStamp(version: string, options: VersionCliArgs): Promise<void> {
+        if ((options as any).skipStamp) return
+        let config
+        try {
+            config = await readConfig(options.config, options.environment)
+        } catch {
+            return   // no config, nothing declared, nothing to stamp
+        }
+        if (!config) return
+        const stamper = new VersionStamper(config, process.cwd())
+        if (!stamper.configured) return
+        if (!stamper.onBump && !(options as any).stamp) return
+
+        const result = await stamper.stamp(version)
+        console.error(`stamp: ${VersionStamper.describe(result)}`)
+        // An UNMATCHED file is the silent-failure case this feature exists to
+        // prevent, so it is named individually rather than left as a count.
+        for (const f of result.unmatched) {
+            console.error(`stamp: WARNING ${f} — the configured pattern matched nothing; not stamped`)
+        }
+    }
+
     async handleVersionCommand(options: VersionCliArgs): Promise<void> {
         try {
             options = await this.withConfiguredPrefix(options)
@@ -271,6 +304,20 @@ export class VersionController {
             }
 
             await this.releaseManager.createVersion(newVersion, options)
+
+            // ── STAMP THE WORKING TREE, BEFORE THE TAG ────────────────────
+            //
+            // The order is the whole point. A tag is a pointer to a COMMIT, so
+            // stamping after tagging produces a tag whose files still say the
+            // previous version — the artefact built from that tag then carries
+            // a number that contradicts the tag it was built from, and the
+            // contradiction is invisible until somebody installs it.
+            //
+            // Opt-in twice over: nothing happens unless `versioning.stamp.files`
+            // is configured, and even then only with `--stamp` or
+            // `versioning.stamp.onBump`. A project that has never heard of this
+            // feature must behave on upgrade exactly as it did before.
+            await this.maybeStamp(newVersion, options)
 
             // Create git tag
             if (options.tag !== false) {
