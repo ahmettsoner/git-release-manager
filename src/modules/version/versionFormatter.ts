@@ -44,7 +44,25 @@ const incrementVersionCore = (version: string, type: VersionType): string => {
 };
 
 const removePrefixAndBuild = (version: string, prefix?: string): string => {
-  let baseVersion = prefix ? version.replace(prefix, '') : version;
+  // ANCHORED. `String.replace(prefix, '')` removes the first occurrence of the
+  // prefix ANYWHERE in the string, and a prefix is by definition only meaningful
+  // at the start. Measured 2026-08-06 with prefix `v`:
+  //
+  //   "1.0.28-dev.9".replace("v", "")  →  "1.0.28-de.9"
+  //
+  // The `v` inside `dev` was eaten, semver then read the channel as `de`, the
+  // caller's `dev` no longer matched it, and the code below treated it as a NEW
+  // channel — resetting the counter to 1. So `--channel dev --from 1.0.28-dev.9
+  // --prefix v` answered 1.0.28-dev.1 instead of .10, silently, on every call.
+  //
+  // A prerelease line built on that walks backwards forever: every cut is .1,
+  // the tag already exists, and the failure surfaces as an immutability
+  // complaint rather than as arithmetic. It only bites a baseline that does NOT
+  // start with the prefix — which is exactly what a caller passes when it keeps
+  // the prefix as its own concern and hands over the bare semver core.
+  const baseVersion = prefix && version.startsWith(prefix)
+    ? version.slice(prefix.length)
+    : version;
   return baseVersion.split('+')[0];
 };
 const addPrereleaseOrChannel = (
