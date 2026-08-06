@@ -2,6 +2,7 @@ import { BranchConfig } from './BranchConfig'
 import { ChannelType } from './ChannelType'
 import { CommitType } from './CommitType'
 import { FileGroups } from './FileGroups'
+import { Flow } from './Flow'
 import { LinkType } from './LinkType'
 import { MentionType } from './MentionType'
 import { NoteType } from './NoteType'
@@ -46,6 +47,13 @@ export interface Config {
      * beyond the default and write nothing. See types/Versioning.ts.
      */
     versioning?: Versioning
+    /**
+     * The release flow a project declares: its phases, each phase's branch, and
+     * how the branches move. Absent = no flow verbs; `branchStrategies` still
+     * describes the git-flow model for `branch finish`. See types/Flow.ts for
+     * why the two are separate declarations.
+     */
+    flow?: Flow
 }
 
 export type CommitTypeNames = Config['commitTypes'][number]['type']

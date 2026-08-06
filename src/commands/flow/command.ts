@@ -1,5 +1,7 @@
 import { Argument, Command, Option } from 'commander'
 import { FlowManager } from "../../modules/FlowManager";
+import { FlowController } from "../../modules/flow/FlowController";
+import { readConfig } from "../../config/configManager";
 
 // Every phase command is a QUESTION about a version, and the question is
 // carried entirely by the selector flags. With none of them set nothing was
@@ -32,12 +34,115 @@ function requirePhaseSelector(command: Command, options: Record<string, unknown>
     process.exit(1)
 }
 
+/**
+ * The DECLARED flow (config `flow.phases`) and the git-flow phase surface below
+ * are two answers to one question, so a project that has declared the first must
+ * not silently get the second.
+ *
+ * `flow phase *` runs on FlowManager, which carries its own hardcoded phases and
+ * receives no project config — measured against a repository at v1.3.0, it
+ * answered `v1.0.0-dev.1`. That is not a surface to leave reachable beside a
+ * declaration it cannot see: the two would disagree, and the wrong one looks
+ * exactly as authoritative as the right one.
+ */
+async function refuseWhenFlowIsDeclared(options: any, verb: string): Promise<void> {
+    let config
+    try {
+        config = await readConfig(options.config, options.environment)
+    } catch {
+        return   // no config to contradict
+    }
+    const phases = config?.flow?.phases
+    if (phases && Object.keys(phases).length > 0) {
+        console.error(
+            `error: this project declares flow.phases (${Object.keys(phases).join(", ")}), ` +
+            `which \`flow ${verb}\` cannot read.\n` +
+            `  Use:  grm flow next <phase>   ·   grm flow run <phase> [--yes]`
+        )
+        process.exit(1)
+    }
+}
+
+async function loadFlow(options: any): Promise<FlowController> {
+    const config = await readConfig(options.config, options.environment)
+    if (!config) throw new Error("no config could be read")
+    return new FlowController(config, process.cwd())
+}
+
 export function createFlowCommand(program: Command) :Command {
 
     const flowProgram = program
     .command("flow")
     .alias('f')
     .description("Tools to manage your git releases and versioning");
+
+    // ── the DECLARED flow ────────────────────────────────────────────────────
+    // `next` is the question, `run` is the act, and `run` PLANS unless told to
+    // proceed. A promotion moves branches and creates a tag; a verb that does
+    // that on the way to answering "what would it be" cannot be consulted by
+    // anything upstream.
+    flowProgram.addCommand(
+        new Command()
+            .command('next')
+            .description('The version this phase would cut, derived from the commit range')
+            .addArgument(new Argument('<phase>', 'A phase declared in flow.phases'))
+            .addOption(new Option('--explain', 'Print the derivation`s reasoning on STDERR'))
+            .action(async (phase: string, commandOptions: any) => {
+                const options = { ...program.opts(), ...commandOptions }
+                try {
+                    const flow = await loadFlow(options)
+                    const p = flow.phase(phase)
+                    const { version, current, why } = await flow.nextVersion(p)
+                    if (options.explain) {
+                        console.error(`phase ${phase}: branch ${p.branch}, current ${current}`)
+                        if (why) console.error(`bump: ${why}`)
+                    }
+                    console.log(version)          // stdout is the version ALONE
+                } catch (e) {
+                    console.error(`error: ${e instanceof Error ? e.message : String(e)}`)
+                    process.exit(1)
+                }
+            })
+    )
+
+    flowProgram.addCommand(
+        new Command()
+            .command('run')
+            .description('Promote and tag a declared phase (plans unless --yes)')
+            .addArgument(new Argument('<phase>', 'A phase declared in flow.phases'))
+            .addOption(new Option('-y, --yes', 'Execute; without it nothing is written'))
+            .action(async (phase: string, commandOptions: any) => {
+                const options = { ...program.opts(), ...commandOptions }
+                try {
+                    const flow = await loadFlow(options)
+                    if (!options.yes) {
+                        const plan = await flow.plan(phase)
+                        console.error(`phase        : ${plan.phase}`)
+                        console.error(`branch       : ${plan.branch}${plan.channel ? ` (channel ${plan.channel})` : ''}`)
+                        if (plan.mergeFrom) {
+                            console.error(`promote      : ${plan.mergeFrom} -> ${plan.branch} (${plan.mergeStrategy})`)
+                            console.error(`to land      : ${plan.ahead} commit(s)` +
+                                (plan.behind ? ` — and ${plan.behind} on ${plan.branch} that ${plan.mergeFrom} does NOT have` : ''))
+                        }
+                        console.error(`version      : ${plan.current} -> ${plan.next}`)
+                        if (plan.bumpWhy) console.error(`bump         : ${plan.bumpWhy}`)
+                        console.error(`tag          : ${plan.willTag ? 'yes' : 'no'}`)
+                        console.error(`delete source: ${plan.willDeleteSource ? 'YES' : 'no'}`)
+                        if (plan.worktree) console.error(`worktree     : ${plan.worktree}`)
+                        console.error(`PLAN ONLY — nothing was merged, tagged or deleted. Execute: grm flow run ${phase} --yes`)
+                        console.log(plan.next)
+                        return
+                    }
+                    const done = await flow.run(phase)
+                    if (done.mergeCommit) console.error(`merged ${done.mergeFrom} -> ${done.branch} (${done.mergeCommit.slice(0, 10)})`)
+                    if (done.tagged) console.error(`tagged ${done.tagged}`)
+                    console.log(done.next)
+                } catch (e) {
+                    console.error(`error: ${e instanceof Error ? e.message : String(e)}`)
+                    process.exit(1)
+                }
+            })
+    )
 
     const programPhase = flowProgram.command('phase').description('')
 
@@ -51,6 +156,7 @@ export function createFlowCommand(program: Command) :Command {
             .addOption(new Option('-c, --current', 'Current version').default(false))
             .action(async (commandOptions: any, command: Command) => {
                 const options = { ...program.opts(), ...commandOptions }
+                await refuseWhenFlowIsDeclared(options, 'phase')
                 requirePhaseSelector(command, options)
 
                 const flowManager = new FlowManager()
@@ -74,6 +180,7 @@ export function createFlowCommand(program: Command) :Command {
             .addOption(new Option('-p, --print <type>', 'Print option can be full, base, channel, or left empty').choices(['full', 'base', 'channel', 'build']).default(''))
             .action(async (channel: string, version: string, commandOptions: any, command: Command) => {
                 const options = { ...program.opts(), ...commandOptions }
+                await refuseWhenFlowIsDeclared(options, 'phase')
                 requirePhaseSelector(command, options)
 
                 const flowManager = new FlowManager()
@@ -97,6 +204,7 @@ export function createFlowCommand(program: Command) :Command {
             .addOption(new Option('-p, --print <type>', 'Print option can be full, base, channel, or left empty').choices(['full', 'base', 'channel', 'build']).default(''))
             .action(async (channel: string, version: string, commandOptions: any, command: Command) => {
                 const options = { ...program.opts(), ...commandOptions }
+                await refuseWhenFlowIsDeclared(options, 'phase')
                 requirePhaseSelector(command, options)
 
                 const flowManager = new FlowManager()
@@ -122,6 +230,7 @@ export function createFlowCommand(program: Command) :Command {
             .addOption(new Option('-p, --print <type>', 'Print option can be full, base, channel, or left empty').choices(['full', 'base', 'channel']).default(''))
             .action(async (version: string, commandOptions: any, command: Command) => {
                 const options = { ...program.opts(), ...commandOptions }
+                await refuseWhenFlowIsDeclared(options, 'phase')
                 requirePhaseSelector(command, options)
 
                 const flowManager = new FlowManager()
