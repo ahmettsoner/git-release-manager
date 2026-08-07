@@ -340,4 +340,101 @@ describe('FlowController', () => {
             expect(git('worktree', 'list').trim().split('\n').length).toBe(2)   // only the new one
         })
     })
+
+    /**
+     * F9 — THE BASELINE IS A TAG THIS BRANCH ACTUALLY CARRIES.
+     *
+     * The filter that decides it had ZERO coverage, and it was inert. It asked
+     * `merge-base --is-ancestor <tag>^{commit} <branch>`, a command that answers
+     * ONLY through its exit status and prints nothing, through a wrapper
+     * (simple-git 3.27.0) that RESOLVES a non-zero exit whose stderr is empty.
+     * `.then(() => true)` therefore fired for "not an ancestor" too and every
+     * tag in the repository passed. Measured on the repository grm manages:
+     * `flow next prod` baselined on v1.6.0 — a tag that exists only on `dev` —
+     * and answered v1.7.0 where the release line stood at v1.0.8 and the right
+     * answer was v1.1.0.
+     *
+     * So these cases do not assert "a filter exists". They assert the ANSWER
+     * DIFFERS PER BRANCH for the same repository, which is the only shape a
+     * pass-everything filter cannot fake.
+     */
+    describe('F9 the baseline is reachable from the phase branch', () => {
+        it('a tag cut on dev is NOT the baseline for a phase on main', async () => {
+            // v1.0.0 is on main (beforeEach). v1.1.0 goes on dev only.
+            commit('feat: only on dev')
+            git('tag', '-a', 'v1.1.0', '-m', 'v1.1.0')
+            git('checkout', '-q', 'main')
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+
+            expect(await f.currentVersion({ branch: 'main' } as any)).toBe('v1.0.0')
+            // The same repository, the same tags, a different branch: the one
+            // assertion a filter that passes everything cannot satisfy.
+            expect(await f.currentVersion({ branch: 'dev' } as any)).toBe('v1.1.0')
+        })
+
+        it('the plan baselines on the release line, not on the highest tag anywhere', async () => {
+            // The live regression in miniature: dev has run ahead by two minors.
+            commit('feat: one')
+            git('tag', '-a', 'v1.1.0', '-m', 'v1.1.0')
+            commit('feat: two')
+            git('tag', '-a', 'v1.2.0', '-m', 'v1.2.0')
+            git('checkout', '-q', 'main')
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+
+            const plan = await f.plan('prod')
+            expect(plan.current).toBe('v1.0.0')     // main's newest, not v1.2.0
+            expect(plan.next).toBe('v1.1.0')        // NOT v1.3.0
+        })
+
+        it('a tag AT the branch tip is reachable from it', async () => {
+            git('checkout', '-q', 'main')
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+            expect(git('rev-parse', 'v1.0.0^{commit}').trim())
+                .toBe(git('rev-parse', 'main').trim())
+            expect(await f.currentVersion({ branch: 'main' } as any)).toBe('v1.0.0')
+        })
+
+        it('a lightweight tag is not a baseline even when it is reachable', async () => {
+            git('checkout', '-q', 'main')
+            commit('fix: unannotated')
+            git('tag', 'v1.0.1')                    // lightweight: no -a
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+            expect(git('tag', '--merged', 'main')).toMatch(/v1\.0\.1/)   // git sees it
+            expect(await f.currentVersion({ branch: 'main' } as any)).toBe('v1.0.0')
+        })
+
+        it('the newest is chosen by VERSION, not lexically, past the tenth minor', async () => {
+            git('checkout', '-q', 'main')
+            commit('feat: nine')
+            git('tag', '-a', 'v1.9.0', '-m', 'v1.9.0')
+            commit('feat: ten')
+            git('tag', '-a', 'v1.10.0', '-m', 'v1.10.0')
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+            expect(await f.currentVersion({ branch: 'main' } as any)).toBe('v1.10.0')
+        })
+
+        it('a tag outside this line\'s prefix is not a baseline', async () => {
+            git('checkout', '-q', 'main')
+            git('tag', '-a', 'rc9.9.9', '-m', 'other line')
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+            expect(await f.currentVersion({ branch: 'main' } as any)).toBe('v1.0.0')
+        })
+
+        it('a phase whose branch does not exist has no baseline, and does not throw', async () => {
+            const f = new FlowController(cfg({ phases: { ghost: { branch: 'no-such-branch' } } }), root)
+            expect(await f.currentVersion(f.phase('ghost'))).toBe('')
+        })
+
+        it('a channel baseline is reachability-filtered too', async () => {
+            // A prerelease cut on a side branch must not baseline the dev line.
+            git('checkout', '-q', '-b', 'side')
+            commit('feat: sideways')
+            git('tag', '-a', 'v2.0.0-dev.9', '-m', 'v2.0.0-dev.9')
+            git('checkout', '-q', 'dev')
+            commit('feat: on the line')
+            git('tag', '-a', 'v1.1.0-dev.1', '-m', 'v1.1.0-dev.1')
+            const f = new FlowController(cfg({ phases: PHASES }), root)
+            expect(await f.currentVersion(f.phase('dev'))).toBe('v1.1.0-dev.1')
+        })
+    })
 })
