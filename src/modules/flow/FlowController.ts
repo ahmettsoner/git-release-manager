@@ -132,60 +132,74 @@ export class FlowController {
     /**
      * The highest tag on THIS line, reachable from the phase's branch.
      *
-     * Three filters, and each one is load-bearing. ANNOTATED only: a lightweight
-     * tag carries no tagger, so it records nothing about who cut it. REACHABLE
-     * from the branch: a tag on a side branch names code this line never
-     * carried. Sorted by VERSION, not lexically — `-v:refname`, because a
-     * lexical sort puts v1.10.0 below v1.9.0 and the baseline would walk
-     * backwards on the tenth minor.
+     * The line is `lineTags` (annotated + reachable + version-sorted); this adds
+     * the one filter that is specific to the baseline question. A phase with a
+     * channel wants that channel's newest tag; a stable phase must not adopt a
+     * prerelease as its baseline, or every stable cut would inherit `-dev.N` and
+     * never leave it.
      */
     async currentVersion(p: FlowPhase): Promise<string> {
         const prefix = this.prefixOf(p)
-        const raw = await this.git.raw([
-            "for-each-ref", "--format=%(refname:short) %(objecttype)",
-            "--sort=-v:refname", `refs/tags/${prefix}*`,
-        ]).catch(() => "")
-        for (const row of String(raw).split("\n")) {
-            const [name, type] = row.trim().split(/\s+/)
-            if (!name || type !== "tag") continue
+        for (const name of await this.lineTags(p)) {
             const core = name.slice(prefix.length)
-            // A phase with a channel wants that channel's newest tag; a stable
-            // phase must not adopt a prerelease as its baseline, or every stable
-            // cut would inherit `-dev.N` and never leave it.
-            const isPre = core.includes("-")
             if (p.channel) {
                 if (!core.includes(`-${p.channel}.`)) continue
-            } else if (isPre) {
+            } else if (core.includes("-")) {
                 continue
             }
-            const reachable = await this.git
-                .raw(["merge-base", "--is-ancestor", `${name}^{commit}`, p.branch])
-                .then(() => true)
-                .catch(() => false)
-            if (reachable) return name
+            return name
         }
         return ""
     }
 
     /**
      * Every annotated tag on this line, newest-version first, reachable from the
-     * phase's branch. One walk; the two baseline questions below filter it.
+     * phase's branch. One walk; the baseline questions above and in
+     * `nextVersion` filter it.
+     *
+     * Three filters, and each one is load-bearing. ANNOTATED only
+     * (`%(objecttype)` is `tag`): a lightweight tag carries no tagger, so it
+     * records nothing about who cut it. REACHABLE from the branch (`--merged`):
+     * a tag on a side branch names code this line never carried. Sorted by
+     * VERSION, not lexically — `-v:refname`, because a lexical sort puts
+     * v1.10.0 below v1.9.0 and the baseline would walk backwards on the tenth
+     * minor.
+     *
+     * ── 🔴 REACHABILITY IS READ FROM STDOUT, NEVER FROM AN EXIT CODE ──
+     *
+     * This used to enumerate every tag and then ask, per tag,
+     * `merge-base --is-ancestor <tag>^{commit} <branch>`, mapping a resolved
+     * promise to `true` and a rejection to `false`. That command answers ONLY
+     * through its exit status: 0 ancestor, 1 not an ancestor, and it prints
+     * nothing either way. simple-git 3.27.0 RESOLVES a non-zero exit whose
+     * stderr is empty — measured, and `git tag --merged` in FlowManager already
+     * avoids the idiom — so `.then(() => true)` fired for BOTH answers and the
+     * filter passed every tag. Consequence on the repository this tool manages:
+     * `flow next prod` baselined on v1.6.0, a tag that lives only on `dev`, and
+     * answered v1.7.0 where the release line stood at v1.0.8 and the correct
+     * answer was v1.1.0 — six minor versions ahead, reported as a success.
+     * VersionController.resolveBaselineRef carries the same warning for
+     * `rev-parse --verify --quiet`: THE ANSWER IS THE OUTPUT, NOT THE ABSENCE
+     * OF A THROW.
+     *
+     * `for-each-ref --merged=<branch>` moves the answer onto stdout, and it
+     * costs ONE process instead of one per tag. Both failure directions now
+     * converge on the SAME safe answer: if git fails, and whether the wrapper
+     * rejects (the catch below) or resolves with empty output, the result is an
+     * empty set — no baseline rather than a foreign one. A phase whose branch
+     * does not exist yet lands here too, which is the answer it had before.
      */
     private async lineTags(p: FlowPhase): Promise<string[]> {
         const prefix = this.prefixOf(p)
         const raw = await this.git.raw([
             "for-each-ref", "--format=%(refname:short) %(objecttype)",
-            "--sort=-v:refname", `refs/tags/${prefix}*`,
+            "--sort=-v:refname", `--merged=${p.branch}`, `refs/tags/${prefix}*`,
         ]).catch(() => "")
         const out: string[] = []
         for (const row of String(raw).split("\n")) {
             const [name, type] = row.trim().split(/\s+/)
             if (!name || type !== "tag") continue
-            const reachable = await this.git
-                .raw(["merge-base", "--is-ancestor", `${name}^{commit}`, p.branch])
-                .then(() => true)
-                .catch(() => false)
-            if (reachable) out.push(name)
+            out.push(name)
         }
         return out
     }
@@ -298,10 +312,16 @@ export class FlowController {
      */
     private async removeWorktree(dir: string): Promise<void> {
         if (this.config?.flow?.worktree?.keep === true) return
+        // SAFE to swallow: nothing reads this call's outcome. Whether it removed
+        // the worktree is re-measured on the next line by LOOKING — existsSync —
+        // so a wrapper that misreports the exit status changes nothing.
         await this.git.raw(["worktree", "remove", "--force", dir]).catch(() => {})
         if (existsSync(dir)) {
             try { rmSync(dir, { recursive: true, force: true }) } catch { /* reported by prune */ }
         }
+        // SAFE to swallow: housekeeping with no answer. Nothing branches on
+        // whether the registration was cleared, and a stale registration is
+        // reclaimed by the next run.
         await this.git.raw(["worktree", "prune"]).catch(() => {})
     }
 
@@ -332,11 +352,16 @@ export class FlowController {
         for (const e of entries) {
             const dir = join(rootDir, e)
             if (!existsSync(join(dir, ".grm-flow", "owner"))) continue   // not ours
+            // SAFE to swallow, for the same reason as removeWorktree: the
+            // outcome is re-measured by existsSync rather than inferred.
             await this.git.raw(["worktree", "remove", "--force", dir]).catch(() => {})
             if (existsSync(dir)) {
                 try { rmSync(dir, { recursive: true, force: true }) } catch { /* prune reports */ }
             }
         }
+        // SAFE to swallow: housekeeping with no answer. Nothing branches on
+        // whether the registration was cleared, and a stale registration is
+        // reclaimed by the next run.
         await this.git.raw(["worktree", "prune"]).catch(() => {})
     }
 
@@ -364,6 +389,11 @@ export class FlowController {
                 date: c.date,
             }))
         } catch {
+            // SAFE to swallow: `git log` answers with its OUTPUT, so this is not
+            // the exit-code shape lineTags warns about. An empty range and a
+            // failed one both produce no commits, and `nextVersion` then falls to
+            // the configured defaultBump — a smaller bump than the history would
+            // have justified, never a larger one.
             return []
         }
     }
@@ -397,6 +427,13 @@ export class FlowController {
     }
 
     private async count(range: string): Promise<number> {
+        // SAFE to swallow: `rev-list --count` PRINTS its answer, so the number is
+        // read out of stdout and not out of an exit status — see lineTags for
+        // the shape that is not safe. Both failure directions land on 0: the
+        // catch returns "0", and a wrapper that resolved an error with empty
+        // output gives NaN, which the guard below also turns into 0. Zero is the
+        // fail-CLOSED direction — `run` refuses a promotion it measures as
+        // carrying nothing, so a broken measurement mints no version.
         const out = await this.git.raw(["rev-list", "--count", range]).catch(() => "0")
         const n = parseInt(String(out).trim(), 10)
         return Number.isFinite(n) ? n : 0
